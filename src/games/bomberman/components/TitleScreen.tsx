@@ -63,8 +63,13 @@ export default function TitleScreen({ app, onPlay, onVersus, onHeroes, onScores,
 
       <div className="relative mx-auto flex min-h-full max-w-5xl flex-col items-center px-4 pb-8 pt-4">
         <div className="flex w-full items-center justify-between gap-2">
-          <span className="chip" title="Points d'expérience cumulés : débloquent de nouveaux héros">
-            ⭐ {profile.xp.toLocaleString("fr-FR")} XP
+          <span className="flex items-center gap-2">
+            <a className="btn btn-ghost btn-sm" href="../" title="Retour au choix du jeu">
+              ◀ Tous les jeux
+            </a>
+            <span className="chip" title="Points d'expérience cumulés : débloquent de nouveaux héros">
+              ⭐ {profile.xp.toLocaleString("fr-FR")} XP
+            </span>
           </span>
           <div className="flex gap-2">
             <button

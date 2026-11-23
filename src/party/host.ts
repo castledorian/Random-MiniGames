@@ -20,6 +20,8 @@ export interface PadSnapshot {
   dy: number;
   /** Compteurs d'appuis par bouton. */
   btn: number[];
+  /** Masque de bits des boutons maintenus (bit i = bouton i). */
+  held: number;
   /** performance.now() du dernier message reçu. */
   at: number;
   connected: boolean;
@@ -243,7 +245,7 @@ export class PartyHost {
             return;
           }
           const pid = Math.random().toString(36).slice(2, 8);
-          existing = { pid, name: "", dx: 0, dy: 0, btn: [], at: 0, connected: false, conn: null, seq: -1 };
+          existing = { pid, name: "", dx: 0, dy: 0, btn: [], held: 0, at: 0, connected: false, conn: null, seq: -1 };
           this.pads.set(pid, existing);
         } else if (existing.conn && existing.conn !== conn) {
           existing.conn.close();
@@ -256,6 +258,7 @@ export class PartyHost {
         pad.seq = -1;
         // La manette a pu être rechargée : ses compteurs repartent de zéro.
         pad.btn = [];
+        pad.held = 0;
         this.write(conn, { t: "welcome", pid: pad.pid, name: pad.name });
         this.emitPads();
         return;
@@ -277,6 +280,7 @@ export class PartyHost {
         const btn = Array.isArray(msg.btn) ? msg.btn.slice(0, 8) : [];
         // Les compteurs ne peuvent qu'augmenter.
         pad.btn = btn.map((n, i) => Math.max(pad!.btn[i] ?? 0, counter(n)));
+        pad.held = counter(msg.held) & 0xff;
         this.onInput?.(snap(pad));
         return;
       }
@@ -294,6 +298,7 @@ export class PartyHost {
         pad.connected = false;
         pad.dx = 0;
         pad.dy = 0;
+        pad.held = 0;
         this.onInput?.(snap(pad));
         this.emitPads();
       }
@@ -311,7 +316,9 @@ export class PartyHost {
         p.connected = false;
         p.dx = 0;
         p.dy = 0;
+        p.held = 0;
         changed = true;
+        this.onInput?.(snap(p));
       }
       if (!p.connected && idle > PAD_FORGET) {
         p.conn?.close();
@@ -340,5 +347,5 @@ export class PartyHost {
 }
 
 function snap(p: PadEntry): PadSnapshot {
-  return { pid: p.pid, name: p.name, dx: p.dx, dy: p.dy, btn: p.btn.slice(), at: p.at, connected: p.connected };
+  return { pid: p.pid, name: p.name, dx: p.dx, dy: p.dy, btn: p.btn.slice(), held: p.held, at: p.at, connected: p.connected };
 }

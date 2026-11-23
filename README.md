@@ -1,9 +1,13 @@
-# 💣 BomberMan Random — Boom Brawlers
+# 🎉 Soirée Jeux (BomberMan Random)
 
-Bomberman-like explosif pour 1 à 4 joueurs, jouable directement dans le navigateur.
-Héros à compétences, bots, versus local et **téléphone en manette via QR code**.
+Les jeux multijoueurs entre amis, directement dans le navigateur : un écran titre pour choisir,
+et partout le même système **clavier · manette · téléphone en manette via QR code**.
 
-▶️ **Jouer : https://castledorian.github.io/BomberMan-Random/**
+- 💣 **Boom Brawlers** : bomberman 1 à 4 joueurs, héros à compétences, bots, versus local
+- ⚡ **Rift Brawl** : combat d'arène à éjection contre l'IA (arcade, survie, contre-la-montre)
+- ❓ **Quizclub** : le quiz de soirée (hébergé dans son propre dépôt, lien depuis l'accueil)
+
+▶️ **Jouer : https://castledorian.github.io/BomberMan-Random/**  (Boom Brawlers : `/bomberman/`, Rift Brawl : `/fighter/`)
 
 ## Contrôles
 
@@ -14,8 +18,10 @@ Héros à compétences, bots, versus local et **téléphone en manette via QR co
 | Manette (Xbox, PS, Switch…) | Stick gauche / croix | A | B / X / Y / gâchettes | Start |
 | Téléphone | Joystick tactile | BOMBE | bouton du skill | — |
 
+Rift Brawl : flèches ou ZQSD pour bouger, ↑/Espace sauter, J frapper, K spécial. Téléphone : joystick + SAUT / ATTAQUE / spécial / PAUSE (ATTAQUE lance le combat depuis le menu).
+
 **Téléphone en manette** : sur l'écran du jeu, bouton « 📱 Manette téléphone » → scannez le QR code
-(ou ouvrez `…/pad.html` et tapez le code de salle). Jusqu'à 8 téléphones par salle.
+(ou ouvrez la page `pad.html` du jeu et tapez le code de salle). Jusqu'à 8 téléphones par salle.
 Connexion directe téléphone ⇄ écran (WebRTC) : aucun serveur à héberger. Le même Wi-Fi donne la meilleure réactivité,
 mais la 4G fonctionne aussi. Si un téléphone se verrouille ou recharge la page, il retrouve automatiquement sa place.
 
@@ -32,22 +38,23 @@ Chaque push sur `main` déclenche le déploiement GitHub Pages (`.github/workflo
 ## Organisation du code
 
 ```
-index.html / pad.html     deux pages : l'écran de jeu et la manette téléphone
-src/party/                ⭐ Party Kit : connexion écran ⇄ téléphones, réutilisable dans d'autres jeux
-  protocol.ts             format des messages, codes de salle
-  host.ts                 côté écran (PartyHost)
-  pad.ts                  côté téléphone (PartyPad)
-src/game/                 moteur du jeu (sans React)
-  engine.ts               règles, boucle de jeu, bombes, compétences
-  heroes.ts               liste des héros (stats, passifs, compétences, déblocage XP)
-  ai.ts                   bots
-  render.ts               dessin sur canvas
-  input.ts                clavier / manettes / téléphones / tactile unifiés
-  padClient.ts            branche le Party Kit sur input.ts
-  audio.ts, storage.ts    sons générés, profil + meilleurs scores (localStorage)
-src/components/           écrans React (titre, salon versus, héros, scores, partie)
-src/pad/PadPage.tsx       interface de la manette téléphone
+index.html                 écran titre « Soirée Jeux » (choix du jeu)
+bomberman/  fighter/       une page par jeu (index.html) + sa page manette téléphone (pad.html)
+src/hub/                   l'écran de sélection ; la liste des jeux est dans games.ts
+src/party/                 ⭐ Party Kit : connexion écran ⇄ téléphones, commun à tous les jeux
+  protocol.ts host.ts pad.ts   messages, côté écran, côté téléphone
+  PairDialog.tsx           fenêtre « QR code + code de salle » réutilisable
+  usePartyPad.ts           logique commune des pages manette
+src/games/bomberman/       Boom Brawlers (moteur engine.ts, héros, bots, rendu canvas)
+src/games/fighter/         Rift Brawl (combat d'arène vs IA : arcade, survie, chrono)
 ```
+
+## Ajouter un jeu
+
+1. Créer `monjeu/index.html` (et `monjeu/pad.html` si le jeu utilise les téléphones) et le code dans `src/games/monjeu/`.
+2. Déclarer les pages dans `vite.config.ts` (`build.rollupOptions.input`).
+3. Ajouter une entrée dans `src/hub/games.ts` : la carte apparaît toute seule sur l'écran titre.
+4. Pour les téléphones en manette : voir `src/party/README.md` (un `PartyHost` côté écran, `usePartyPad` côté téléphone).
 
 ## Idées pour améliorer plus tard
 

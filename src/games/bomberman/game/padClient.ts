@@ -1,4 +1,4 @@
-import { PartyHost, type HostState, type PadSnapshot } from "@/party/host";
+import { PartyHost, type HostState, type PadSnapshot } from "@party/host";
 import type { InputManager, PhoneRaw } from "./input";
 
 export interface PadInfo {

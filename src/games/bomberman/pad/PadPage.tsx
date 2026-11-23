@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GAME_ID, PAD_BUTTONS } from "@/game/padClient";
-import { PartyPad } from "@/party/pad";
-import { cleanRoomCode } from "@/party/protocol";
+import { PartyPad } from "@party/pad";
+import { cleanRoomCode } from "@party/protocol";
 
 interface Status {
   state?: string;

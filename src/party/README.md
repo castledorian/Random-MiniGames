@@ -21,14 +21,17 @@ host.start();
 host.send(pad.pid, { etat: "en jeu", couleur: "#f00" }); // état libre affiché sur le téléphone
 ```
 
-3. Côté téléphone (`pad.html`) :
+   Le QR code et le code de salle s'affichent avec `<PairDialog room linkState pads onClose />` (`PairDialog.tsx`).
+
+3. Côté téléphone (`pad.html`) : le plus simple est le hook `usePartyPad(gameId, nbBoutons)` (formulaire de connexion, pseudo, reconnexion, écran allumé). En direct :
 
 ```ts
 const pad = new PartyPad({ gameId: "mon-jeu", buttons: 4 });
 pad.onPhase = (phase, erreur) => …;   // joining → on ⇄ lost, ou error
 pad.onStatus = (status) => …;         // ce que l'écran envoie avec host.send()
 pad.join(codeSalle, pseudo);
-pad.setDir(1, 0); pad.press(0);
+pad.setDir(1, 0); pad.press(0);   // press = appui compté
+pad.hold(0, true);                 // hold = bouton maintenu (host : pad.held, bit 0)
 ```
 
 ## Fiabilité

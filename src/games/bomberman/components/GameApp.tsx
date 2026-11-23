@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioFX } from "@/game/audio";
 import { InputManager } from "@/game/input";
 import { PadHost, type PadInfo } from "@/game/padClient";
-import type { HostState } from "@/party/host";
+import type { HostState } from "@party/host";
 import { loadProfile, saveProfile, type Profile } from "@/game/storage";
 import type { GameConfig } from "@/game/types";
 import GameView from "./GameView";

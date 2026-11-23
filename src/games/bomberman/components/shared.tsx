@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { AudioFX } from "@/game/audio";
 import type { InputManager } from "@/game/input";
 import type { PadHost, PadInfo } from "@/game/padClient";
-import type { HostState } from "@/party/host";
+import type { HostState } from "@party/host";
 import type { Profile } from "@/game/storage";
 import type { Hero } from "@/game/heroes";
 import { drawHero } from "@/game/render";

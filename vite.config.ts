@@ -3,21 +3,32 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+const p = (f: string) => fileURLToPath(new URL(f, import.meta.url));
+
 export default defineConfig({
-  // Chemins relatifs : le site fonctionne sur GitHub Pages (/BomberMan-Random/),
-  // sur un domaine perso ou dans un sous-dossier du futur site « hub ».
+  // Chemins relatifs : le site fonctionne sur GitHub Pages (/NomDuDepot/),
+  // sur un domaine perso ou dans n'importe quel sous-dossier.
   base: "./",
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: {
+      // Brique commune « téléphone en manette » (QR code, salle, reconnexion)
+      "@party": p("./src/party"),
+      // Alias historique du moteur Boom Brawlers
+      "@": p("./src/games/bomberman"),
+    },
   },
   server: { host: true },
   build: {
     target: "es2020",
     rollupOptions: {
+      // Une entrée par page : l'accueil + chaque jeu (+ sa page manette téléphone)
       input: {
-        main: fileURLToPath(new URL("./index.html", import.meta.url)),
-        pad: fileURLToPath(new URL("./pad.html", import.meta.url)),
+        hub: p("./index.html"),
+        bomberman: p("./bomberman/index.html"),
+        bombermanPad: p("./bomberman/pad.html"),
+        fighter: p("./fighter/index.html"),
+        fighterPad: p("./fighter/pad.html"),
       },
     },
   },

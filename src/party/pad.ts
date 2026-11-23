@@ -38,7 +38,7 @@ export class PartyPad {
   onPhase: ((p: PadPhase, error: string) => void) | null = null;
   onStatus: ((s: Record<string, unknown> | null) => void) | null = null;
 
-  private st = { dx: 0, dy: 0, btn: [] as number[], seq: 0 };
+  private st = { dx: 0, dy: 0, btn: [] as number[], held: 0, seq: 0 };
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
   private gen = 0;
@@ -86,6 +86,23 @@ export class PartyPad {
     if (this.st.dx === dx && this.st.dy === dy) return;
     this.st.dx = dx;
     this.st.dy = dy;
+    this.flush();
+  }
+
+  /** Bouton maintenu / relâché (en plus de press() qui compte les appuis). */
+  hold(i: number, down: boolean) {
+    const bit = 1 << i;
+    const next = down ? this.st.held | bit : this.st.held & ~bit;
+    if (next === this.st.held) return;
+    this.st.held = next;
+    this.flush();
+  }
+
+  /** Remet tout à zéro (téléphone verrouillé, onglet masqué…). */
+  release() {
+    this.st.dx = 0;
+    this.st.dy = 0;
+    this.st.held = 0;
     this.flush();
   }
 
@@ -250,7 +267,7 @@ export class PartyPad {
   private flush() {
     if (this.phase !== "on" && this.phase !== "lost") return;
     this.st.seq++;
-    this.write({ t: "in", seq: this.st.seq, dx: this.st.dx, dy: this.st.dy, btn: this.st.btn.slice() });
+    this.write({ t: "in", seq: this.st.seq, dx: this.st.dx, dy: this.st.dy, btn: this.st.btn.slice(), held: this.st.held });
   }
 
   private write(msg: PadToHost) {

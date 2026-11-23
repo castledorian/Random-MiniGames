@@ -49,8 +49,10 @@ export type PadToHost =
    * État de la manette. `btn` contient des compteurs d'appuis (un par bouton) :
    * l'hôte détecte un appui quand un compteur augmente, ce qui rend le protocole
    * insensible aux messages perdus ou dupliqués.
+   * `held` (facultatif) est un masque de bits des boutons actuellement maintenus
+   * (bit i = bouton i), pour les jeux qui ont besoin de « maintenir » (ex. saut variable).
    */
-  | { t: "in"; seq: number; dx: number; dy: number; btn: number[] }
+  | { t: "in"; seq: number; dx: number; dy: number; btn: number[]; held?: number }
   | { t: "bye" };
 
 /** Messages envoyés par l'hôte à un téléphone. */
