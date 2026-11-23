@@ -10,7 +10,7 @@ export interface GameEntry {
   inputs: ("keyboard" | "gamepad" | "phone" | "touch")[];
   accent: string;
   accent2: string;
-  art: "bomb" | "bolt" | "quiz";
+  art: "bomb" | "bolt" | "quiz" | "chef";
 }
 
 /**
@@ -39,5 +39,16 @@ export const GAMES: GameEntry[] = [
     accent: "#ff3ea5",
     accent2: "#22e6ff",
     art: "bolt",
+  },
+  {
+    id: "bistro",
+    name: "Brawl Bistro",
+    tagline: "Cuisine en équipe façon Overcooked : commandes, rats voleurs et tunnels.",
+    href: "./bistro/",
+    players: "1 à 4 joueurs · co-op",
+    inputs: ["keyboard", "gamepad", "phone", "touch"],
+    accent: "#ffd23f",
+    accent2: "#ff8a3d",
+    art: "chef",
   },
 ];

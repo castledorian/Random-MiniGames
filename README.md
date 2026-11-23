@@ -9,6 +9,8 @@ et partout le même système **clavier · manette · téléphone en manette via 
 - ⚡ **Rift Brawl** : combat d'arène à éjection façon Smash. Versus 2 à 4 (joueurs + bots) ou solo contre l'IA
   (arcade, survie, contre-la-montre). **Maintenir ATTAQUE = attaque lourde** : éjecte selon le % de la cible
   et traverse le bouclier de Basalt.
+- 🍔 **Brawl Bistro** : cuisine en équipe façon Overcooked. Solo (2 chefs, on alterne) ou co-op 2 à 4
+  (claviers A/B, manettes, téléphones). 3 cuisines dont 2 avec des tunnels sur les côtés (`src/games/bistro/game/config.ts`).
 
 ▶️ **Jouer : https://castledorian.github.io/BomberMan-Random/**  (Boom Brawlers : `/bomberman/`, Rift Brawl : `/fighter/`)
 
@@ -44,7 +46,7 @@ Chaque push sur `main` déclenche le déploiement GitHub Pages (`.github/workflo
 
 ```
 index.html                 écran titre « Soirée Jeux » (choix du jeu)
-bomberman/  fighter/       une page par jeu (index.html) + sa page manette téléphone (pad.html)
+bomberman/ fighter/ bistro/  une page par jeu (index.html) + sa page manette téléphone (pad.html)
 src/hub/                   l'écran de sélection ; la liste des jeux est dans games.ts
 src/party/                 ⭐ Party Kit : connexion écran ⇄ téléphones, commun à tous les jeux
   protocol.ts host.ts pad.ts   messages, côté écran, côté téléphone

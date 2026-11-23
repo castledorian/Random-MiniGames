@@ -56,6 +56,38 @@ export default function Art({ kind, a, b }: { kind: GameEntry["art"]; a: string;
       </svg>
     );
   }
+  if (kind === "chef") {
+    return (
+      <svg viewBox="0 0 200 140" className="h-full w-full" aria-hidden>
+        <defs>
+          <radialGradient id="cg" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor={b} stopOpacity="0.5" />
+            <stop offset="1" stopColor={a} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="100" cy="72" r="64" fill="url(#cg)" />
+        {/* poêle */}
+        <ellipse cx="96" cy="92" rx="52" ry="16" fill="#1d2140" stroke="#0b0d20" strokeWidth="4" />
+        <ellipse cx="96" cy="88" rx="44" ry="11" fill="#2c3566" />
+        <rect x="146" y="84" width="44" height="10" rx="5" fill="#8b5a2b" stroke="#0b0d20" strokeWidth="3" />
+        {/* burger qui saute */}
+        <g transform="translate(96 46)">
+          <path d="M-26 0a26 18 0 0 1 52 0z" fill={b} stroke="#0b0d20" strokeWidth="3" />
+          <rect x="-28" y="1" width="56" height="7" rx="3" fill="#5ea83a" />
+          <rect x="-26" y="8" width="52" height="9" rx="4" fill="#6b3a1e" />
+          <rect x="-26" y="18" width="52" height="8" rx="4" fill={a} stroke="#0b0d20" strokeWidth="3" />
+          <g fill="#fff3c0">
+            <circle cx="-10" cy="-8" r="2" />
+            <circle cx="4" cy="-11" r="2" />
+            <circle cx="14" cy="-6" r="2" />
+          </g>
+        </g>
+        <g stroke={a} strokeWidth="4" strokeLinecap="round" opacity="0.9">
+          <path d="M40 34l10 8M160 30l-10 9M38 64h12M150 60h12" />
+        </g>
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 200 140" className="h-full w-full" aria-hidden>
       <defs>

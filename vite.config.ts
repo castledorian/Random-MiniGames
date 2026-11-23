@@ -29,6 +29,8 @@ export default defineConfig({
         bombermanPad: p("./bomberman/pad.html"),
         fighter: p("./fighter/index.html"),
         fighterPad: p("./fighter/pad.html"),
+        bistro: p("./bistro/index.html"),
+        bistroPad: p("./bistro/pad.html"),
       },
     },
   },
