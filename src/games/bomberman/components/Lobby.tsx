@@ -219,7 +219,7 @@ export default function Lobby({ app, onBack, onStart }: { app: AppCtx; onBack: (
 
   return (
     <div className="screen grid-bg">
-      <div className="relative mx-auto flex min-h-full max-w-6xl flex-col px-4 pb-8 pt-4">
+      <div className="ui-zoom relative mx-auto flex min-h-full max-w-6xl flex-col px-4 pb-8 pt-4">
         <div className="flex items-center justify-between gap-2">
           <button className="btn btn-ghost btn-sm" onClick={onBack}>
             ◀ Retour

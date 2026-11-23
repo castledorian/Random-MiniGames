@@ -55,8 +55,8 @@ function HelpModal({ onClose }: { onClose: () => void }) {
     [<><Key>R</Key> <span className="text-white/40">/</span> <Key>Entrée</Key></>, "Rejouer instantanément (pause / fin de partie)"],
   ];
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="glass animate-pop thin-scroll max-h-[90vh] w-full max-w-xl overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="ui-zoom glass animate-pop thin-scroll max-h-[calc(90vh/var(--ui,1))] w-full max-w-xl overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-2xl text-[#22e6ff]">Commandes</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Fermer">
@@ -214,7 +214,7 @@ export default function Menu({ prefs, onChange, onStart, onVersus, touch, onTogg
       </div>
 
       <div className="thin-scroll relative z-10 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-8 pt-2 sm:px-8 sm:pt-5">
-        <div className="mx-auto flex max-w-6xl flex-col items-center">
+        <div className="ui-zoom mx-auto flex max-w-6xl flex-col items-center">
           {/* title */}
           <header className="animate-slide-up mb-4 mt-2 text-center sm:mb-6">
             <h1 className="title-logo text-[2.9rem] sm:text-7xl lg:text-8xl">

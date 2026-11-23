@@ -164,8 +164,8 @@ export default function CoopLobby({
   const kc = KITCHENS[ki];
 
   return (
-    <div className="scroll-y absolute inset-0 z-40 bg-[#0d1030]/85 backdrop-blur-[3px]">
-      <div className="mx-auto flex min-h-full max-w-5xl flex-col gap-3 p-3 sm:p-5">
+    <div className="scroll-y absolute inset-0 z-40 bg-[#0d1030]/92">
+      <div className="ui-zoom mx-auto flex min-h-full max-w-5xl flex-col gap-3 p-3 sm:p-5">
         <div className="flex items-center justify-between gap-2">
           <button className="btn btn-ghost px-4 py-1.5 text-base" onClick={onBack}>
             ◀ Retour

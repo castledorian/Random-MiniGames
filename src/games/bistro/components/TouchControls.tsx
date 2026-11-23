@@ -54,7 +54,7 @@ function TBtn({
       onContextMenu={(e) => e.preventDefault()}
     >
       <span style={{ fontSize: `calc(${style.width} * 0.34)`, lineHeight: 1 }}>{icon}</span>
-      <span style={{ fontSize: `calc(${style.width} * 0.17)`, lineHeight: 1.1, letterSpacing: '0.04em' }}>{label}</span>
+      <span style={{ fontSize: `calc(${style.width} * ${label.length > 6 ? 0.13 : 0.16})`, lineHeight: 1.1, letterSpacing: '0.01em' }}>{label}</span>
       {cdRef && <div ref={cdRef} className="cd" />}
     </div>
   );
@@ -201,7 +201,7 @@ export default function TouchControls({ controls, showSwap }: Props) {
       <TBtn
         controls={controls}
         action="grab"
-        label="GRAB"
+        label="PRENDRE"
         icon="✋"
         gradient="linear-gradient(#ffe36a, #ff9f1c)"
         style={{ width: S, height: S, right: 'max(16px, env(safe-area-inset-right))', bottom: 'max(18px, env(safe-area-inset-bottom))' }}
@@ -209,7 +209,7 @@ export default function TouchControls({ controls, showSwap }: Props) {
       <TBtn
         controls={controls}
         action="work"
-        label="CHOP"
+        label="COUPER"
         icon="🔪"
         gradient="linear-gradient(#8ef2b8, #1fb875)"
         style={{
@@ -222,7 +222,7 @@ export default function TouchControls({ controls, showSwap }: Props) {
       <TBtn
         controls={controls}
         action="dash"
-        label="DASH"
+        label="POUVOIR"
         icon="⚡"
         cdRef={cdRef}
         gradient="linear-gradient(#b99bff, #6b3fe0)"
@@ -237,7 +237,7 @@ export default function TouchControls({ controls, showSwap }: Props) {
         <TBtn
           controls={controls}
           action="swap"
-          label="SWAP"
+          label="CHANGER"
           icon="🔄"
           gradient="linear-gradient(#7fd6ff, #2a8fe0)"
           style={{

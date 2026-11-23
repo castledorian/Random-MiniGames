@@ -8,7 +8,7 @@ import type { GameConfig } from "@/game/types";
 import GameView from "./GameView";
 import { HeroScreen, HowToScreen, ScoresScreen } from "./InfoScreens";
 import Lobby from "./Lobby";
-import PairModal from "./PairModal";
+import PairDialog from "@party/PairDialog";
 import { type AppCtx } from "./shared";
 import TitleScreen from "./TitleScreen";
 
@@ -132,7 +132,16 @@ export default function GameApp() {
       {screen === "howto" && <HowToScreen onBack={() => go("title")} />}
       {screen === "game" && cfg && <GameView app={app} cfg={cfg} onExit={() => setScreen(cfg.mode === "versus" ? "lobby" : "title")} />}
 
-      {pairOpen && <PairModal app={app} onClose={() => setPairOpen(false)} />}
+      {pairOpen && (
+        <PairDialog
+          room={room}
+          linkState={linkState}
+          pads={pads}
+          accent="#ff5fc4"
+          hint="Scannez le QR code avec l'appareil photo du téléphone : il devient une manette (joystick, BOMBE, compétence, pause)."
+          onClose={() => setPairOpen(false)}
+        />
+      )}
 
       {toastMsg && (
         <div

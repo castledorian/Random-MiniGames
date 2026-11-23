@@ -275,3 +275,8 @@ kbd {
   font-size: 0.85em;
   white-space: nowrap;
 }
+
+/* Agrandissement des menus sur grand écran (voir party/uiScale.ts) */
+.ui-zoom {
+  zoom: var(--ui, 1);
+}

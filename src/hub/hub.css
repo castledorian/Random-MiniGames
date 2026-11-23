@@ -238,3 +238,8 @@ body {
     animation: none;
   }
 }
+
+/* Agrandissement des menus sur grand écran (voir party/uiScale.ts) */
+.ui-zoom {
+  zoom: var(--ui, 1);
+}

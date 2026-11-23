@@ -9,8 +9,8 @@ export interface PadInfo {
 /** Identifiant du jeu pour le Party Kit (sert à construire l'identifiant de salle). */
 export const GAME_ID = "bomberman";
 
-/** Boutons de la manette téléphone : 0 = BOMBE, 1 = SKILL. */
-export const PAD_BUTTONS = 2;
+/** Boutons de la manette téléphone : 0 = BOMBE, 1 = SKILL, 2 = PAUSE. */
+export const PAD_BUTTONS = 3;
 
 /**
  * Adaptateur entre le Party Kit (connexion directe téléphone ⇄ écran)
@@ -75,6 +75,7 @@ export class PadHost {
         dy: p.dy,
         b: p.btn[0] ?? 0,
         s: p.btn[1] ?? 0,
+        pz: p.btn[2] ?? 0,
         age: 0,
         at: p.at,
       });

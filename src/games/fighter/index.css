@@ -117,10 +117,9 @@ input {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: rgba(10, 5, 30, 0.6);
+  background: rgba(10, 5, 30, 0.85);
   border: 2px solid rgba(255, 255, 255, 0.22);
   color: #fff;
-  backdrop-filter: blur(6px);
   transition: background 0.12s, border-color 0.12s, transform 0.1s;
 }
 .icon-btn:hover {
@@ -133,10 +132,9 @@ input {
 
 /* ---------- panels ---------- */
 .glass {
-  background: linear-gradient(180deg, rgba(28, 14, 70, 0.78), rgba(12, 6, 38, 0.82));
+  background: linear-gradient(180deg, rgba(28, 14, 70, 0.94), rgba(12, 6, 38, 0.96));
   border: 2px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
-  backdrop-filter: blur(8px);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
 }
 
@@ -200,4 +198,9 @@ input {
   color: #0d0724;
   background: linear-gradient(180deg, #ffffff, #c9c2ff);
   box-shadow: 0 2px 0 #6a5fb0;
+}
+
+/* Agrandissement des menus sur grand écran (voir party/uiScale.ts) */
+.ui-zoom {
+  zoom: var(--ui, 1);
 }

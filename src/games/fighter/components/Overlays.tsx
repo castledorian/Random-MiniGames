@@ -35,8 +35,8 @@ export function PauseOverlay({
   onToggleMute: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#07041a]/75 p-4 backdrop-blur-md">
-      <div className="glass animate-pop w-full max-w-sm p-6 text-center">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#07041a]/88 p-4">
+      <div className="ui-zoom glass animate-pop w-full max-w-sm p-6 text-center">
         <h2 className="title-logo mb-1 text-5xl">PAUSE</h2>
         <p className="mb-5 text-xs uppercase tracking-[0.25em] text-white/55">Reprends ton souffle</p>
         <div className="space-y-3">
@@ -92,8 +92,8 @@ export function GameOverOverlay({
   const record = rank === 1;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-[#07041a]/80 p-3 backdrop-blur-md">
-      <div className="glass animate-pop thin-scroll my-auto max-h-full w-full max-w-lg overflow-y-auto p-5 sm:p-6">
+    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-[#07041a]/90 p-3">
+      <div className="ui-zoom glass animate-pop thin-scroll my-auto max-h-full w-full max-w-lg overflow-y-auto p-5 sm:p-6">
         <div className="text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/55">
             {MODE_NAME[summary.mode as ModeId]} · {hero.name}
@@ -182,8 +182,8 @@ export function VersusOverOverlay({ summary, onRestart, onMenu }: { summary: Gam
   const w = summary.winner;
   const st = summary.standings ?? [];
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-[#07041a]/80 p-3 backdrop-blur-md">
-      <div className="glass animate-pop thin-scroll my-auto max-h-full w-full max-w-lg overflow-y-auto p-5 sm:p-6">
+    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-[#07041a]/90 p-3">
+      <div className="ui-zoom glass animate-pop thin-scroll my-auto max-h-full w-full max-w-lg overflow-y-auto p-5 sm:p-6">
         <div className="text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/55">Versus · fin du match</p>
           <h2 className="title-logo mt-1 text-4xl sm:text-5xl">{w ? "VICTOIRE !" : "ÉGALITÉ"}</h2>

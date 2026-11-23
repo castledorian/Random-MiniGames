@@ -47,7 +47,7 @@ export function ItemIcon({ id, size = 36 }: { id: ItemId; size?: number }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawItemIcon(ctx, id, size / 2, size / 2, size / 2 - 3);
   }, [id, size]);
-  return <canvas ref={ref} style={{ width: size, height: size }} />;
+  return <canvas ref={ref} style={{ width: size, height: size, display: 'inline-block', verticalAlign: 'middle' }} />;
 }
 
 const MODE_LABEL: Record<Mode, string> = { solo: 'SOLO', coop: 'CO-OP' };
@@ -203,7 +203,7 @@ export function MainMenu({
 
   return (
     <div
-      className="scroll-y absolute inset-0 z-40 bg-[#0d1030]/80 backdrop-blur-[3px]"
+      className="scroll-y absolute inset-0 z-40 bg-[#0d1030]/90"
       // clicking a menu button must not steal keyboard focus, so Enter always starts the game
       onMouseDown={(e) => {
         if ((e.target as HTMLElement).closest('button')) e.preventDefault();
@@ -223,7 +223,7 @@ export function MainMenu({
         </div>
       </div>
       <div className="flex min-h-[calc(100%-56px)] items-center justify-center p-3 sm:p-6">
-        <div className="w-full max-w-5xl">
+        <div className="ui-zoom w-full max-w-5xl">
           {/* title */}
           <div className="relative mb-3 text-center sm:mb-5">
             <div className="pointer-events-none absolute -left-1 top-0 hidden sm:block">
@@ -248,9 +248,9 @@ export function MainMenu({
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-[1.35fr_1fr] sm:gap-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.35fr_1fr] sm:gap-5">
             {/* left: setup */}
-            <div className="space-y-3">
+            <div className="min-w-0 space-y-3">
               <button onClick={onCoop} className="btn btn-mint w-full py-3 text-left">
                 <div className="text-2xl">👥 CO-OP ENTRE AMIS · 2 à 4</div>
                 <div className="text-xs leading-tight opacity-85">Claviers, manettes et téléphones (QR code) — chacun son chef</div>
@@ -271,14 +271,14 @@ export function MainMenu({
               </div>
 
               <div className="text-sm text-[#b9c4f2]">👤 SOLO : deux chefs, un seul toi — alterne entre eux à tout moment</div>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <HeroPick label="CHEF A" sub="tu commences avec lui" value={settings.heroes[0]} onChange={(id) => setHero(0, id)} />
                 <HeroPick label="CHEF B" sub="à prendre quand tu veux" value={settings.heroes[1]} onChange={(id) => setHero(1, id)} />
               </div>
             </div>
 
             {/* right: play + scores */}
-            <div className="flex flex-col gap-3">
+            <div className="flex min-w-0 flex-col gap-3">
               <div className="panel p-3">
                 <label className="flex items-center gap-2 text-base text-[#b9c4f2]">
                   <span>NOM</span>
@@ -330,9 +330,9 @@ export function MainMenu({
 // ---------------------------------------------------------------------------
 export function HowTo({ onClose }: { onClose: () => void }) {
   return (
-    <div className="scroll-y absolute inset-0 z-50 bg-[#0d1030]/92 backdrop-blur-sm" onClick={onClose}>
+    <div className="scroll-y absolute inset-0 z-50 bg-[#0d1030]/92" onClick={onClose}>
       <div className="flex min-h-full items-center justify-center p-3 sm:p-6">
-        <div className="panel anim-pop w-full max-w-3xl p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="ui-zoom panel anim-pop w-full max-w-3xl p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="title-text text-4xl">COMMENT JOUER</h2>
             <button className="btn btn-berry px-4 py-1.5 text-xl" onClick={onClose}>
@@ -474,8 +474,8 @@ export function PauseMenu({
   touch: boolean;
 }) {
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0d1030]/75 p-4 backdrop-blur-sm">
-      <div className="panel anim-pop w-full max-w-sm p-5 text-center">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0d1030]/88 p-4">
+      <div className="ui-zoom panel anim-pop w-full max-w-sm p-5 text-center">
         <h2 className="title-text text-5xl">PAUSE</h2>
         <div className="mt-5 space-y-3">
           <button className="btn btn-sun w-full py-3 text-2xl" onClick={onResume}>
@@ -486,7 +486,7 @@ export function PauseMenu({
           </button>
           <div className="grid grid-cols-2 gap-3">
             <button className="btn btn-ghost text-base" onClick={onToggleMute}>
-              {muted ? '🔇 Son coupé' : '🔊 Son activé'}
+              {muted ? '🔇 Son' : '🔊 Son'}
             </button>
             <button className="btn btn-berry text-base" onClick={onQuit}>
               ⌂ Menu
@@ -557,9 +557,9 @@ export function GameOver({
   const best = rank === 0;
   const placed = rank >= 0;
   return (
-    <div className="scroll-y absolute inset-0 z-40 bg-[#0d1030]/80 backdrop-blur-sm">
+    <div className="scroll-y absolute inset-0 z-40 bg-[#0d1030]/90">
       <div className="flex min-h-full items-center justify-center p-3 sm:p-6">
-        <div className="panel anim-pop w-full max-w-3xl p-4 sm:p-6">
+        <div className="ui-zoom panel anim-pop w-full max-w-3xl p-4 sm:p-6">
           <h2 className="title-text text-center text-5xl sm:text-6xl">TEMPS ÉCOULÉ !</h2>
 
           <div className="mt-3 flex items-center justify-center gap-2 sm:gap-3">

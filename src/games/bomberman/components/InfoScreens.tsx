@@ -7,7 +7,7 @@ export function HeroScreen({ app, onBack }: { app: AppCtx; onBack: () => void })
   const { profile } = app;
   return (
     <div className="screen grid-bg">
-      <div className="relative mx-auto max-w-6xl px-4 pb-10 pt-4">
+      <div className="ui-zoom relative mx-auto max-w-6xl px-4 pb-10 pt-4">
         <div className="flex items-center justify-between gap-2">
           <button className="btn btn-ghost btn-sm" onClick={onBack}>
             ◀ Retour
@@ -85,7 +85,7 @@ export function ScoresScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => setScores(loadScores()), []);
   return (
     <div className="screen grid-bg">
-      <div className="relative mx-auto max-w-3xl px-4 pb-10 pt-4">
+      <div className="ui-zoom relative mx-auto max-w-3xl px-4 pb-10 pt-4">
         <div className="flex items-center justify-between gap-2">
           <button className="btn btn-ghost btn-sm" onClick={onBack}>
             ◀ Retour
@@ -162,7 +162,7 @@ export function HowToScreen({ onBack }: { onBack: () => void }) {
   };
   return (
     <div className="screen grid-bg">
-      <div className="relative mx-auto max-w-4xl px-4 pb-10 pt-4">
+      <div className="ui-zoom relative mx-auto max-w-4xl px-4 pb-10 pt-4">
         <div className="flex items-center justify-between gap-2">
           <button className="btn btn-ghost btn-sm" onClick={onBack}>
             ◀ Retour

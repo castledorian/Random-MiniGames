@@ -107,7 +107,7 @@ export default function Hub() {
         <i style={{ left: "44%", bottom: "-4%", width: 70, animationDelay: "-4s" }} />
       </div>
 
-      <main className="relative z-10 mx-auto flex min-h-full max-w-6xl flex-col items-center px-4 pb-10 pt-8 sm:pt-12">
+      <main className="ui-zoom relative z-10 mx-auto flex min-h-full max-w-6xl flex-col items-center px-4 pb-10 pt-8 sm:pt-12">
         <header className="hub-pop text-center">
           <div className="text-xs font-black uppercase tracking-[0.45em] text-[#5ee7ff] sm:text-sm">Les jeux entre amis</div>
           <h1 className="hub-logo mt-2">SOIRÉE</h1>

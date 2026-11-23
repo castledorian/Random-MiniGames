@@ -345,6 +345,12 @@ function drawAccessory(c: CanvasRenderingContext2D, hero: Hero, t: number) {
 export class Renderer {
   private c: CanvasRenderingContext2D;
   private floors = new Map<string, HTMLCanvasElement>();
+  /** Décor (sol + murs + caisses) mis en cache : redessiné seulement quand la grille change. */
+  private terrain: HTMLCanvasElement | null = null;
+  private terrainKey = "";
+  /** HUD latéral mis en cache : redessiné seulement quand une valeur affichée change. */
+  private side: HTMLCanvasElement | null = null;
+  private sideKey = "";
   private wall: HTMLCanvasElement;
   private block: HTMLCanvasElement;
   private flameSpr: HTMLCanvasElement;
@@ -476,6 +482,67 @@ export class Renderer {
     });
   }
 
+  /** Sol + murs + caisses immobiles, reconstruit uniquement quand la grille change. */
+  private terrainFor(g: Game): HTMLCanvasElement {
+    let pops = 0;
+    for (let i = 0; i < g.pop.length; i++) if (g.pop[i] > 0) pops++;
+    const key = g.level.id + "|" + g.gridVersion + "|" + pops;
+    if (this.terrain && key === this.terrainKey) return this.terrain;
+    this.terrainKey = key;
+    const cv = this.terrain ?? document.createElement("canvas");
+    cv.width = BOARD_W;
+    cv.height = BOARD_H;
+    const c = cv.getContext("2d")!;
+    c.clearRect(0, 0, BOARD_W, BOARD_H);
+    c.drawImage(this.floorFor(g.level), 0, 0);
+    for (let r = 0; r < ROWS; r++) {
+      for (let x = 0; x < COLS; x++) {
+        const i = r * COLS + x;
+        const tile = g.grid[i];
+        if (tile === T_FLOOR) {
+          if (r > 0 && g.grid[i - COLS] !== T_FLOOR) {
+            c.fillStyle = "rgba(0,0,0,0.3)";
+            c.fillRect(x * TILE, r * TILE, TILE, 11);
+          }
+          continue;
+        }
+        if (g.pop[i] > 0) continue; // animé : dessiné à chaque image
+        c.drawImage(tile === T_WALL ? this.wall : this.block, x * TILE, r * TILE - 6);
+      }
+    }
+    // vignette intégrée au décor (évite un grand dégradé redessiné à chaque image)
+    c.drawImage(this.vignette, 0, 0);
+    this.terrain = cv;
+    return cv;
+  }
+
+  /** HUD des coins (écran large), mis en cache tant que rien d'affiché ne change. */
+  private sideLayer(g: Game, sc: number): HTMLCanvasElement {
+    const L = g.layout;
+    const parts: (string | number)[] = [L.vw, sc.toFixed(3), g.cfg.mode, g.stage, g.round, g.level.id, g.suddenStarted ? "sd" + (Math.floor(g.clock * 3) % 2) : Math.ceil(Math.max(0, g.suddenAt - g.time))];
+    for (const p of g.players) {
+      const frac = Math.max(0, Math.min(1, 1 - p.skillCd / p.hero.skill.cd));
+      parts.push(p.id, p.corner, p.score, p.wins, p.lives, p.alive ? 1 : 0, p.maxBombs, p.range, p.speed, p.kills, p.blocks, Math.round(frac * 24), p.alive ? 0 : Math.ceil(p.respawnT));
+    }
+    const key = parts.join(",");
+    if (this.side && key === this.sideKey) return this.side;
+    this.sideKey = key;
+    const cv = this.side ?? document.createElement("canvas");
+    const w = Math.max(1, Math.round(L.vw * sc));
+    const h = Math.max(1, Math.round(L.vh * sc));
+    if (cv.width !== w || cv.height !== h) {
+      cv.width = w;
+      cv.height = h;
+    }
+    const c = cv.getContext("2d")!;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, w, h);
+    c.setTransform(sc, 0, 0, sc, 0, 0);
+    this.drawSideHud(c, g);
+    this.side = cv;
+    return cv;
+  }
+
   /** Sol en damier aux couleurs du niveau (mis en cache). */
   private floorFor(lv: Level): HTMLCanvasElement {
     let f = this.floors.get(lv.id);
@@ -589,12 +656,17 @@ export class Renderer {
     c.globalAlpha = 1;
     c.globalCompositeOperation = "source-over";
 
-    // fond
+    // fond (seulement sous le plateau : visible pendant les secousses)
     c.fillStyle = "#0b1022";
-    c.fillRect(0, 0, L.vw, L.vh);
+    c.fillRect(L.bx, L.by, BOARD_W, BOARD_H);
 
-    if (L.wide) this.drawSideHud(c, g);
-    else this.drawHud(c, g);
+    if (L.wide) {
+      // on ne recopie que les deux colonnes latérales du HUD en cache
+      const side = this.sideLayer(g, sc);
+      const k = side.width / L.vw;
+      c.drawImage(side, 0, 0, SIDE_W * k, side.height, 0, 0, SIDE_W, L.vh);
+      c.drawImage(side, (L.vw - SIDE_W) * k, 0, SIDE_W * k, side.height, L.vw - SIDE_W, 0, SIDE_W, L.vh);
+    } else this.drawHud(c, g);
 
     c.save();
     c.translate(L.bx, L.by);
@@ -610,13 +682,12 @@ export class Renderer {
       c.translate(-BOARD_W / 2, -BOARD_H / 2);
     }
 
-    c.drawImage(this.floorFor(g.level), 0, 0);
+    c.drawImage(this.terrainFor(g), 0, 0);
     this.drawPortals(c, g);
     this.drawDanger(c, g);
     this.drawWorld(c, g);
     c.restore();
 
-    c.drawImage(this.vignette, L.bx, L.by);
 
     if (g.flash > 0) {
       c.globalAlpha = Math.min(0.5, g.flash * 1.2);
@@ -633,7 +704,7 @@ export class Renderer {
     const t = g.clock;
     for (let i = 0; i < dg.length; i++) {
       const d = dg[i];
-      if (d === Infinity || d <= 0 || d > FUSE + 0.2) continue;
+      if (d === Infinity || d <= 0 || d > FUSE + 0.2 || g.grid[i] !== T_FLOOR) continue;
       const k = 1 - Math.min(1, d / FUSE);
       const pulse = 0.5 + 0.5 * Math.sin(t * (6 + k * 20));
       c.fillStyle = `rgba(255,70,90,${(0.07 + 0.2 * k * (0.5 + 0.5 * pulse)).toFixed(3)})`;
@@ -662,13 +733,7 @@ export class Renderer {
       for (let x = 0; x < COLS; x++) {
         const i = r * COLS + x;
         const tile = g.grid[i];
-        if (tile === T_FLOOR) {
-          if (r > 0 && g.grid[i - COLS] !== T_FLOOR) {
-            c.fillStyle = "rgba(0,0,0,0.3)";
-            c.fillRect(x * TILE, r * TILE, TILE, 11);
-          }
-          continue;
-        }
+        if (tile === T_FLOOR) continue;
         const spr = tile === T_WALL ? this.wall : this.block;
         const pop = g.pop[i];
         if (pop > 0) {
@@ -679,8 +744,6 @@ export class Renderer {
           c.scale(s, s);
           c.drawImage(spr, -TILE / 2, -TILE / 2 - 6);
           c.restore();
-        } else {
-          c.drawImage(spr, x * TILE, r * TILE - 6);
         }
       }
 
@@ -1175,7 +1238,7 @@ export class Renderer {
     }
 
     // portrait
-    drawHero(c, p.hero, x + 46, y + 78, 62, { facing: 2, walkT: t * 4, moving: !dead, t: t + p.id, alpha: dead ? 0.5 : 1 });
+    drawHero(c, p.hero, x + 46, y + 78, 62, { facing: 2, walkT: 0, moving: false, t: 0.4, alpha: dead ? 0.5 : 1 });
     c.textAlign = "left";
     c.font = FONT(11, 900);
     c.fillStyle = p.hero.color;
@@ -1219,11 +1282,11 @@ export class Renderer {
       c.fill();
     }
     if (ready && p.alive) {
-      c.globalAlpha = 0.25 + 0.25 * Math.sin(t * 8);
-      c.fillStyle = "#fff";
-      rr(c, x + 12, y + 172, w - 24, 10, 5);
-      c.fill();
-      c.globalAlpha = out ? 0.45 : 1;
+      // compétence prête : liseré blanc fixe (pas d'animation → HUD mis en cache)
+      c.strokeStyle = "#ffffff";
+      c.lineWidth = 2;
+      rr(c, x + 11, y + 171, w - 22, 12, 6);
+      c.stroke();
     }
 
     // statut

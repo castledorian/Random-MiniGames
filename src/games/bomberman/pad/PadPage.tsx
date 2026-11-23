@@ -76,6 +76,7 @@ export default function PadPage() {
     }
     return {
       color,
+      pauseId: 2,
       badge: slot >= 0 ? "J" + (slot + 1) : undefined,
       title: s?.name || s?.hero ? String(s?.name ?? s?.hero) : undefined,
       line,

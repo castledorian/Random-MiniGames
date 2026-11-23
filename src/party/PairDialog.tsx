@@ -56,9 +56,9 @@ export default function PairDialog({ room, linkState, pads, accent = "#22e6ff", 
         : "⚠ Service de connexion injoignable, nouvel essai automatique… (vérifiez Internet)";
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-auto bg-black/70 p-3 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-auto bg-black/70 p-3" onClick={onClose}>
       <div
-        className="w-full max-w-2xl rounded-2xl border-2 p-5 text-white shadow-2xl"
+        className="ui-zoom w-full max-w-2xl rounded-2xl border-2 p-5 text-white shadow-2xl"
         style={{ background: "linear-gradient(180deg,#1b2550,#111836)", borderColor: accent + "55" }}
         onClick={(e) => e.stopPropagation()}
       >

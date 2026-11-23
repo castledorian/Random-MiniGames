@@ -61,7 +61,7 @@ export default function TitleScreen({ app, onPlay, onVersus, onHeroes, onScores,
       <div className="bomb-deco" style={{ width: 120, height: 120, right: "14%", bottom: "8%", animationDelay: "-4s" }} />
       <div className="bomb-deco" style={{ width: 44, height: 44, left: "12%", bottom: "14%", animationDelay: "-1s" }} />
 
-      <div className="relative mx-auto flex min-h-full max-w-5xl flex-col items-center px-4 pb-8 pt-4">
+      <div className="ui-zoom relative mx-auto flex min-h-full max-w-5xl flex-col items-center px-4 pb-8 pt-4">
         <div className="flex w-full items-center justify-between gap-2">
           <span className="flex items-center gap-2">
             <a className="btn btn-ghost btn-sm" href="../" title="Retour au choix du jeu">

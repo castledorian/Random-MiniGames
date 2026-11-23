@@ -98,6 +98,8 @@ export default function GameView({ app, cfg, onExit }: { app: AppCtx; cfg: GameC
       },
     });
     gameRef.current = game;
+    // accès console pour le débogage : window.__boom
+    (window as unknown as { __boom?: Game }).__boom = game;
     a.input.captureKeys = true;
     a.input.onAnyInput = () => {
       if (overRef.current && performance.now() - overAtRef.current > 900) restartRef.current();
@@ -131,13 +133,16 @@ export default function GameView({ app, cfg, onExit }: { app: AppCtx; cfg: GameC
         else aw = W - 330;
       }
       // Écran large (PC) : scores des joueurs dans les 4 coins ; sinon bandeau en haut.
-      const wide = aw / ah >= 1.3;
+      // pas de colonnes latérales sur écran tactile (les commandes occupent les côtés)
+      const wide = !a.input.touch.active && aw / ah >= 1.3;
       game.setWide(wide);
       const L = layoutFor(wide);
       const sc = Math.max(0.2, Math.min(aw / L.vw, ah / L.vh));
       const w = Math.floor(L.vw * sc);
       const h = Math.floor(L.vh * sc);
-      game.resize(w, h, Math.min(window.devicePixelRatio || 1, 2));
+      // densité de pixels plafonnée (~3,5 Mpx) pour rester fluide sur les écrans 4K / Retina
+      const dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(3.5e6 / Math.max(1, w * h)));
+      game.resize(w, h, Math.max(1, dpr));
       const portraitTouch = a.input.touch.active && H > W;
       setSize({ w, h, top: portraitTouch ? Math.max(8, Math.floor((H - 240 - h) / 2)) : -1, wide });
     };
@@ -231,8 +236,8 @@ export default function GameView({ app, cfg, onExit }: { app: AppCtx; cfg: GameC
       {touch && !paused && !over && <TouchControls input={app.input} getSkill={getSkill} />}
 
       {paused && !over && (
-        <div className="absolute inset-0 z-30 grid place-items-center bg-black/60 p-3 backdrop-blur-sm">
-          <div className="panel pop-in w-full max-w-sm p-6 text-center">
+        <div className="absolute inset-0 z-30 grid place-items-center bg-black/75 p-3">
+          <div className="ui-zoom panel pop-in w-full max-w-sm p-6 text-center">
             <h2 className="logo-boom text-5xl">PAUSE</h2>
             <div className="mt-5 grid gap-3">
               <button className="btn" onClick={() => gameRef.current?.setPaused(false)}>
@@ -275,8 +280,8 @@ export default function GameView({ app, cfg, onExit }: { app: AppCtx; cfg: GameC
       )}
 
       {over && sum && (
-        <div className="absolute inset-0 z-30 grid place-items-center overflow-auto bg-black/65 p-3 backdrop-blur-sm">
-          <div className="panel pop-in my-auto w-full max-w-xl p-5 text-center">
+        <div className="absolute inset-0 z-30 grid place-items-center overflow-auto bg-black/80 p-3">
+          <div className="ui-zoom panel pop-in my-auto w-full max-w-xl p-5 text-center">
             <div className="text-xs font-black uppercase tracking-[0.3em] text-[var(--muted)]">{sum.mode === "solo" ? "Partie terminée" : "Match terminé"}</div>
             {sum.mode === "solo" ? (
               <h2 className="logo-boom text-[clamp(2.6rem,10vw,4.2rem)]">GAME OVER</h2>

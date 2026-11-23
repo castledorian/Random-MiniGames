@@ -14,6 +14,8 @@ export interface PhoneRaw {
   dy: number;
   b: number;
   s: number;
+  /** Compteur d'appuis sur PAUSE (facultatif). */
+  pz?: number;
   age: number;
   at: number;
 }
@@ -68,7 +70,7 @@ export class InputManager {
     kbB: { bomb: false, skill: false },
   };
   private gpPrev = new Map<string, { bomb: boolean; skill: boolean; start: boolean }>();
-  private phoneSeen = new Map<string, { b: number; s: number }>();
+  private phoneSeen = new Map<string, { b: number; s: number; pz: number }>();
   private attached = false;
 
   private isTyping(t: EventTarget | null): boolean {
@@ -220,11 +222,13 @@ export class InputManager {
     this.phones.forEach((p, pid) => {
       const stale = p.age + (now - p.at) > 4000;
       if (stale) return;
-      const seen = this.phoneSeen.get(pid) ?? { b: p.b, s: p.s };
+      const pz = p.pz ?? 0;
+      const seen = this.phoneSeen.get(pid) ?? { b: p.b, s: p.s, pz };
+      if (pz > seen.pz || (pz < seen.pz && pz > 0)) this.pauseEdge = true;
       // Un compteur qui redescend = manette rechargée (compteurs remis à zéro).
       const bombEdge = p.b > seen.b || (p.b < seen.b && p.b > 0);
       const skillEdge = p.s > seen.s || (p.s < seen.s && p.s > 0);
-      this.phoneSeen.set(pid, { b: p.b, s: p.s });
+      this.phoneSeen.set(pid, { b: p.b, s: p.s, pz });
       if (bombEdge) this.onAnyInput?.();
       out.set("ph:" + pid, {
         dx: p.dx,

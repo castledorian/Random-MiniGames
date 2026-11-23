@@ -43,7 +43,8 @@ export default function GameView({ game, screen, touch, onPause, onPadStart }: P
         cssW = Math.floor(W * s);
         cssH = Math.floor(H * s);
       }
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // densité plafonnée (~3,5 Mpx) : fluide même sur écran 4K
+      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(3.5e6 / Math.max(1, cssW * cssH))));
       const pw = Math.round(cssW * dpr);
       const ph = Math.round((cssW * dpr * H) / W);
       if (canvas.width !== pw || canvas.height !== ph) {

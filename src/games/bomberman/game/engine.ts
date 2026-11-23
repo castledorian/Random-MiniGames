@@ -82,6 +82,8 @@ export class Game {
   portalRow = new Uint8Array(ROWS);
   portalCol = new Uint8Array(COLS);
   layout: Layout = layoutFor(false);
+  /** Incrémenté à chaque changement de la grille (le rendu met le décor en cache). */
+  gridVersion = 0;
   hidden = new Uint8Array(COLS * ROWS);
   pop = new Float32Array(COLS * ROWS);
   bombs: Bomb[] = [];
@@ -394,6 +396,11 @@ export class Game {
       y0++;
       y1--;
     }
+    // les tunnels se referment en premier (sinon on pourrait s'y cacher)
+    const portals: number[] = [];
+    for (const r of this.level.portalRows) portals.push(r * COLS, r * COLS + COLS - 1);
+    for (const cIdx of this.level.portalCols) portals.push(cIdx, (ROWS - 1) * COLS + cIdx);
+    this.sdOrder = [...portals, ...this.sdOrder];
     this.sdIndex = 0;
     this.sdTimer = 0;
     this.suddenStarted = false;
@@ -452,6 +459,7 @@ export class Game {
   }
 
   private genLevel() {
+    this.gridVersion++;
     const g = this.grid;
     this.hidden.fill(0);
     const lv = this.pickLevel();
@@ -1006,6 +1014,7 @@ export class Game {
   private breakBlock(x: number, y: number, owner: Player, tally: Map<Player, { n: number; x: number; y: number }>, spawns: Powerup[], from: Bomb) {
     const i = y * COLS + x;
     this.grid[i] = T_FLOOR;
+    this.gridVersion++;
     const px = (x + 0.5) * TILE;
     const py = (y + 0.5) * TILE;
     for (let k = 0; k < 7; k++) {
@@ -1287,6 +1296,7 @@ export class Game {
           for (const pl of this.players) if (pl.alive && this.overlapsTile(pl, x, y)) occ = true;
           if (occ) break;
           this.grid[i] = T_BLOCK;
+          this.gridVersion++;
           this.hidden[i] = 0;
           this.pop[i] = 0.35 + k * 0.05;
           this.powerups = this.powerups.filter((u) => !(Math.floor(u.x) === x && Math.floor(u.y) === y));
@@ -1415,6 +1425,7 @@ export class Game {
   private landWall(x: number, y: number) {
     const i = y * COLS + x;
     this.grid[i] = T_WALL;
+    this.gridVersion++;
     this.hidden[i] = 0;
     this.pop[i] = 0.3;
     const b = this.bombGrid[i];

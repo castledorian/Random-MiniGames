@@ -205,7 +205,7 @@ export default function VersusLobby({ onBack, onStart, onPair, padCount }: Props
     <div className="relative flex h-full flex-col overflow-hidden">
       <Backdrop />
       <div className="thin-scroll relative z-10 min-h-0 flex-1 overflow-y-auto px-3 pb-8 pt-3 sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4">
+        <div className="ui-zoom mx-auto flex max-w-6xl flex-col gap-4">
           <div className="flex items-center justify-between gap-2">
             <button className="btn-ghost px-4 py-2 text-sm" onClick={onBack}>
               ◀ Retour

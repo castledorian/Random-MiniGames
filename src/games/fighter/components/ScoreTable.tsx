@@ -42,8 +42,8 @@ export function RecordsModal({ onClose, initialMode }: { onClose: () => void; in
   const entries = useMemo(() => topScores(mode, loadScores()), [mode, version]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="glass animate-pop flex max-h-[88vh] w-full max-w-xl flex-col p-5" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="ui-zoom glass animate-pop flex max-h-[calc(88vh/var(--ui,1))] w-full max-w-xl flex-col p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display flex items-center gap-2 text-2xl text-[#ffd23f]">
             <Trophy className="h-6 w-6" /> Records
