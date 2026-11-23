@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Menu from "./components/Menu";
+import VersusLobby from "./components/VersusLobby";
 import GameView from "./components/GameView";
 import { audio } from "./game/audio";
-import { HEROES } from "./game/constants";
+import { HEROES, type VersusConfig } from "./game/constants";
 import PairDialog from "@party/PairDialog";
 import type { HostState } from "@party/host";
-import { host, link, startPads } from "./padLink";
+import { link, startPads } from "./padLink";
 import { loadPrefs, savePrefs, type Prefs } from "./storage";
 
 function detectTouch() {
@@ -18,7 +19,8 @@ function detectTouch() {
 
 export default function App() {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
-  const [screen, setScreen] = useState<"menu" | "game">("menu");
+  const [screen, setScreen] = useState<"menu" | "lobby" | "game">("menu");
+  const [versus, setVersus] = useState<VersusConfig | null>(null);
   const [touch, setTouch] = useState(detectTouch);
   const [session, setSession] = useState(0);
   const [pairOpen, setPairOpen] = useState(false);
@@ -34,9 +36,9 @@ export default function App() {
     const stop = startPads({
       onRoom: setRoom,
       onState: setLinkState,
-      onPads: (n, fresh) => {
-        setPadCount(n);
-        setPads(host.list().map((p) => ({ pid: p.pid, name: p.name })));
+      onPads: (list, fresh) => {
+        setPadCount(list.length);
+        setPads(list);
         if (fresh) {
           setToast("📱 Manette connectée : " + fresh);
           window.clearTimeout(t);
@@ -58,36 +60,64 @@ export default function App() {
   const start = useCallback(() => {
     audio.init();
     audio.play("start");
+    setVersus(null);
     setSession((s) => s + 1);
     setScreen("game");
+  }, []);
+
+  const startVersus = useCallback((cfg: VersusConfig) => {
+    audio.play("start");
+    setVersus(cfg);
+    setSession((s) => s + 1);
+    setScreen("game");
+  }, []);
+
+  const openLobby = useCallback(() => {
+    audio.init();
+    audio.play("select");
+    setScreen("lobby");
   }, []);
 
   // Menu : un appui sur un bouton du téléphone lance le combat
   useEffect(() => {
     if (screen !== "menu") return;
+    // Au menu, depuis un téléphone : ATTAQUE = versus entre amis, SPÉCIAL = combat solo.
     const f = (i: number) => {
-      if (i < 3) start();
+      if (i === 1 || i === 0) openLobby();
+      else if (i === 2) start();
     };
     link.onButton = f;
     link.status = () => ({ state: "menu", hero: HEROES[prefs.hero].name, color: HEROES[prefs.hero].color });
     return () => {
       if (link.onButton === f) link.onButton = null;
     };
-  }, [screen, start, prefs.hero]);
+  }, [screen, start, openLobby, prefs.hero]);
 
   return (
     <div className="h-full w-full overflow-hidden bg-void">
-      {screen === "menu" ? (
-        <Menu prefs={prefs} onChange={setPrefs} onStart={start} touch={touch} onToggleTouch={() => setTouch((t) => !t)} onPair={() => setPairOpen(true)} padCount={padCount} />
-      ) : (
+      {screen === "menu" && (
+        <Menu
+          prefs={prefs}
+          onChange={setPrefs}
+          onStart={start}
+          onVersus={openLobby}
+          touch={touch}
+          onToggleTouch={() => setTouch((t) => !t)}
+          onPair={() => setPairOpen(true)}
+          padCount={padCount}
+        />
+      )}
+      {screen === "lobby" && <VersusLobby onBack={() => setScreen("menu")} onStart={startVersus} onPair={() => setPairOpen(true)} padCount={padCount} />}
+      {screen === "game" && (
         <GameView
           key={session}
           hero={prefs.hero}
           mode={prefs.mode}
-          touch={touch}
+          versus={versus}
+          touch={touch && !versus}
           prefs={prefs}
           onPrefs={setPrefs}
-          onExit={() => setScreen("menu")}
+          onExit={() => setScreen(versus ? "lobby" : "menu")}
         />
       )}
       {pairOpen && (

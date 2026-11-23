@@ -1,4 +1,4 @@
-import { ATK, GRAV, MAX_FALL, FAST_FALL, type AttackDef, type HeroDef, type Platform, type Rect } from "./constants";
+import { ATK, GRAV, MAX_FALL, FAST_FALL, HEAVY_HOLD, HEAVY_MAX, type AttackDef, type HeroDef, type Platform, type Rect } from "./constants";
 import type { Ctrl } from "./input";
 import type { AI } from "./ai";
 import type { Game } from "./game";
@@ -10,10 +10,12 @@ export interface ActiveAttack {
   hit: Set<number>;
   fired: boolean;
   spd: number;
+  /** Puissance de l'attaque lourde (0 = non chargée … 1 = charge max). */
+  power?: number;
 }
 
 export interface FighterOpts {
-  team: 0 | 1;
+  team: number;
   stocks: number;
   isPlayer?: boolean;
   ai?: AI | null;
@@ -31,7 +33,13 @@ let NEXT_ID = 1;
 
 export class Fighter {
   readonly id = NEXT_ID++;
-  team: 0 | 1;
+  /** Équipe : en solo 0 = joueur, 1 = ennemis ; en versus chaque joueur a la sienne. */
+  team: number;
+  /** Versus : emplacement J1…J4 (-1 en solo) et périphérique qui le contrôle. */
+  slot = -1;
+  device: string | null = null;
+  kos = 0;
+  falls = 0;
   hero: HeroDef;
   ai: AI | null;
   isPlayer: boolean;
@@ -80,6 +88,11 @@ export class Fighter {
   dashDir: 1 | -1 = 1;
   dashHit = new Set<number>();
   trailT = 0;
+
+  /** Attaque lourde : temps de maintien avant la charge, puis charge en cours (-1 = aucune). */
+  pendAtk = 0;
+  charge = -1;
+  chargeFx = 0;
 
   bufJump = 0;
   bufAtk = 0;
@@ -151,6 +164,8 @@ export class Fighter {
     this.flash = 0;
     this.comboStep = 0;
     this.comboT = 0;
+    this.pendAtk = 0;
+    this.charge = -1;
     this.bufAtk = this.bufJump = this.bufSpc = 0;
     this.noHitT = 0;
     this.squash = 0;
@@ -247,6 +262,39 @@ export class Fighter {
       }
     }
 
+    // ------------------------------------------------ heavy attack: charging
+    if (this.charge >= 0) {
+      this.charge += dt;
+      if (dir) this.facing = dir as 1 | -1;
+      this.vx = approach(this.vx, 0, 3600 * dt);
+      this.chargeFx -= dt;
+      const k = Math.min(1, this.charge / HEAVY_MAX);
+      if (this.chargeFx <= 0) {
+        this.chargeFx = 0.05 - 0.03 * k;
+        const ang = Math.random() * Math.PI * 2;
+        const r = 50 + 30 * (1 - k);
+        g.fx.emit("dot", this.x + Math.cos(ang) * r, this.y + Math.sin(ang) * r, -Math.cos(ang) * 260, -Math.sin(ang) * 260, 0.2, 3 + 3 * k, k > 0.98 ? "#ffffff" : this.hero.accent, { add: true });
+      }
+      if (!c.attackHeld || this.charge >= HEAVY_MAX || !this.onGround) this.releaseHeavy(g, k);
+      return;
+    }
+    // ------------------------------------------------ heavy attack: tap or hold?
+    if (this.pendAtk > 0) {
+      this.pendAtk += dt;
+      this.vx = approach(this.vx, 0, 2400 * dt);
+      if (!c.attackHeld || !this.onGround) {
+        this.pendAtk = 0;
+        this.startAttack(c);
+      } else if (this.pendAtk >= HEAVY_HOLD) {
+        this.pendAtk = 0;
+        this.charge = 0;
+        this.chargeFx = 0;
+        audio.play("shield");
+        g.fx.ring(this.x, this.y, 16, 160, 0.3, this.hero.accent);
+        return;
+      }
+    }
+
     // ------------------------------------------------ attack progress
     const a = this.attack;
     let afterActive = true;
@@ -280,8 +328,15 @@ export class Fighter {
 
     // ------------------------------------------------ attack / special start
     const busyNow = this.isBusy();
-    if (this.bufAtk > 0 && !busyNow) {
-      this.startAttack(c);
+    if (this.bufAtk > 0 && !busyNow && this.pendAtk <= 0) {
+      const continuing = this.comboT > 0 || (this.attack !== null && !!this.attack.def.chain);
+      if (this.onGround && c.attackHeld && !c.up && !c.down && !continuing) {
+        // On attend un instant : relâché vite = coup normal, maintenu = attaque lourde.
+        this.bufAtk = 0;
+        this.pendAtk = 1e-4;
+      } else {
+        this.startAttack(c);
+      }
     } else if (this.bufSpc > 0 && !busyNow && this.cd <= 0) {
       this.startSpecial(c, g);
       if (this.dashT > 0 || this.shieldT > 0) return;
@@ -368,6 +423,15 @@ export class Fighter {
     }
     this.attack = { def, t: 0, hit: new Set(), fired: false, spd: this.hero.atkSpeed };
     this.invuln = Math.min(this.invuln, 0.25);
+  }
+
+  /** Déclenche l'attaque lourde avec la puissance accumulée (0..1). */
+  private releaseHeavy(g: Game, k: number) {
+    this.charge = -1;
+    this.attack = { def: ATK.smash, t: 0, hit: new Set(), fired: false, spd: 0.9 + 0.1 * this.hero.atkSpeed, power: k };
+    this.comboStep = 0;
+    g.fx.ring(this.x, this.y, 20, 260 + 200 * k, 0.3, k > 0.98 ? "#ffffff" : this.hero.accent);
+    g.addShake(3 + 5 * k);
   }
 
   private startSpecial(c: Ctrl, g: Game) {

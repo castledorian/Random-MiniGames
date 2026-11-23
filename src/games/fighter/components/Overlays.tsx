@@ -96,7 +96,7 @@ export function GameOverOverlay({
       <div className="glass animate-pop thin-scroll my-auto max-h-full w-full max-w-lg overflow-y-auto p-5 sm:p-6">
         <div className="text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/55">
-            {MODE_NAME[summary.mode]} · {hero.name}
+            {MODE_NAME[summary.mode as ModeId]} · {hero.name}
           </p>
           <h2 className={`title-logo mt-1 text-4xl sm:text-5xl ${good ? "" : "[background-image:linear-gradient(180deg,#fff,#ff8aa0_45%,#ff3e5e)]"}`}>{summary.reason}</h2>
         </div>
@@ -153,7 +153,7 @@ export function GameOverOverlay({
         )}
 
         <div className="mt-3">
-          <div className="section-label mb-1.5">Top {MODE_NAME[summary.mode]}</div>
+          <div className="section-label mb-1.5">Top {MODE_NAME[summary.mode as ModeId]}</div>
           <ScoreRows entries={top} highlightId={entryId} />
           {showOwn && own && (
             <div className="mt-1.5">
@@ -172,6 +172,49 @@ export function GameOverOverlay({
           </button>
         </div>
         <p className="mt-3 text-center text-[11px] text-white/45">Entrée ou R : rejouer instantanément</p>
+      </div>
+    </div>
+  );
+}
+
+/** Fin d'un match versus : vainqueur + classement. */
+export function VersusOverOverlay({ summary, onRestart, onMenu }: { summary: GameSummary; onRestart: () => void; onMenu: () => void }) {
+  const w = summary.winner;
+  const st = summary.standings ?? [];
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-[#07041a]/80 p-3 backdrop-blur-md">
+      <div className="glass animate-pop thin-scroll my-auto max-h-full w-full max-w-lg overflow-y-auto p-5 sm:p-6">
+        <div className="text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/55">Versus · fin du match</p>
+          <h2 className="title-logo mt-1 text-4xl sm:text-5xl">{w ? "VICTOIRE !" : "ÉGALITÉ"}</h2>
+          {w && (
+            <div className="font-display mt-1 text-2xl" style={{ color: HEROES[w.hero].color }}>
+              {w.name} · {HEROES[w.hero].name}
+            </div>
+          )}
+        </div>
+        <div className="mt-4 grid gap-1.5">
+          {st.map((x, i) => (
+            <div key={x.slot} className="flex items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2 text-sm">
+              <span className="font-display" style={{ color: HEROES[x.hero].color }}>
+                {i + 1}. {x.name}
+                <span className="ml-2 text-[11px] text-white/50">{HEROES[x.hero].name}</span>
+              </span>
+              <span className="text-white/70">
+                {x.kos} KO · {x.falls} chute{x.falls > 1 ? "s" : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
+          <button className="btn-primary px-6 py-4 text-xl sm:text-2xl" onClick={onRestart}>
+            <span>↻ Revanche</span>
+          </button>
+          <button className="btn-ghost px-5 py-3 text-sm" onClick={onMenu}>
+            ⌂ Salon
+          </button>
+        </div>
+        <p className="mt-3 text-center text-[11px] text-white/45">Entrée, R ou un bouton du téléphone : revanche</p>
       </div>
     </div>
   );

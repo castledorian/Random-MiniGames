@@ -179,7 +179,14 @@ export default function TouchControls({ hero, getCd }: { hero: HeroDef; getCd: (
             input.touch.jump = false;
           }}
         />
-        <ActionButton label="ATK" size="calc(var(--u) * 1.18)" color="#ff3ea5" style={{ right: 0, bottom: "calc(var(--u) * 0.08)" }} onDown={() => input.press("attack")} />
+        <ActionButton label="ATK" size="calc(var(--u) * 1.18)" color="#ff3ea5" style={{ right: 0, bottom: "calc(var(--u) * 0.08)" }} onDown={() => {
+            input.touch.attack = true;
+            input.press("attack");
+          }}
+          onUp={() => {
+            input.touch.attack = false;
+          }}
+        />
         <ActionButton
           icon
           label={<SpecialIcon id={hero.special.id} className="h-[1em] w-[1em]" />}

@@ -190,3 +190,14 @@ input {
     animation: none;
   }
 }
+
+.kbd-f {
+  display: inline-block;
+  min-width: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #0d0724;
+  background: linear-gradient(180deg, #ffffff, #c9c2ff);
+  box-shadow: 0 2px 0 #6a5fb0;
+}

@@ -8,6 +8,25 @@ export const BOARD_H = ROWS * TILE;
 export const HUD_H = 64;
 export const VIEW_W = BOARD_W;
 export const VIEW_H = BOARD_H + HUD_H;
+/** Largeur des colonnes de scores en disposition « écran large » (PC). */
+export const SIDE_W = 200;
+
+/** Disposition de l'écran : bandeau en haut (téléphone, portrait) ou scores dans les 4 coins (PC). */
+export interface Layout {
+  wide: boolean;
+  /** Taille totale de la vue. */
+  vw: number;
+  vh: number;
+  /** Position du plateau dans la vue. */
+  bx: number;
+  by: number;
+}
+
+export function layoutFor(wide: boolean): Layout {
+  return wide
+    ? { wide, vw: BOARD_W + SIDE_W * 2, vh: BOARD_H, bx: SIDE_W, by: 0 }
+    : { wide, vw: VIEW_W, vh: VIEW_H, bx: 0, by: HUD_H };
+}
 
 export const T_FLOOR = 0;
 export const T_WALL = 1;
@@ -84,6 +103,8 @@ export interface Player {
   boostSpeed: number;
   blinkT: number;
   placed: number;
+  /** Coin d'apparition : 0 haut-gauche, 1 haut-droite, 2 bas-gauche, 3 bas-droite. */
+  corner: number;
 }
 
 export interface Bomb {
@@ -162,6 +183,8 @@ export interface PlayerConfig {
 export interface GameConfig {
   mode: "solo" | "versus";
   players: PlayerConfig[];
+  /** Identifiant du niveau (voir levels.ts), ou "random" pour en changer à chaque manche. */
+  level?: string;
 }
 
 export interface Standing {

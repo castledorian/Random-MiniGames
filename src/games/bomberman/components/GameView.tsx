@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Game } from "@/game/engine";
 import { HEROES, heroById } from "@/game/heroes";
 import { addScore, cleanName, renameScore } from "@/game/storage";
-import { VIEW_H, VIEW_W, type GameConfig, type GameSummary } from "@/game/types";
+import { VIEW_H, VIEW_W, layoutFor, type GameConfig, type GameSummary } from "@/game/types";
 import TouchControls from "./TouchControls";
 import { HeroCanvas, type AppCtx } from "./shared";
 
@@ -35,7 +35,7 @@ export default function GameView({ app, cfg, onExit }: { app: AppCtx; cfg: GameC
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState<OverInfo | null>(null);
   const [touch, setTouch] = useState(false);
-  const [size, setSize] = useState({ w: VIEW_W, h: VIEW_H, top: -1 });
+  const [size, setSize] = useState({ w: VIEW_W, h: VIEW_H, top: -1, wide: false });
   const [nameDraft, setNameDraft] = useState("");
 
   const bank = useCallback((s: GameSummary): Omit<OverInfo, "summary"> | null => {
@@ -130,12 +130,16 @@ export default function GameView({ app, cfg, onExit }: { app: AppCtx; cfg: GameC
         if (H > W) ah = H - 240;
         else aw = W - 330;
       }
-      const sc = Math.max(0.2, Math.min(aw / VIEW_W, ah / VIEW_H));
-      const w = Math.floor(VIEW_W * sc);
-      const h = Math.floor(VIEW_H * sc);
+      // Écran large (PC) : scores des joueurs dans les 4 coins ; sinon bandeau en haut.
+      const wide = aw / ah >= 1.3;
+      game.setWide(wide);
+      const L = layoutFor(wide);
+      const sc = Math.max(0.2, Math.min(aw / L.vw, ah / L.vh));
+      const w = Math.floor(L.vw * sc);
+      const h = Math.floor(L.vh * sc);
       game.resize(w, h, Math.min(window.devicePixelRatio || 1, 2));
       const portraitTouch = a.input.touch.active && H > W;
-      setSize({ w, h, top: portraitTouch ? Math.max(8, Math.floor((H - 240 - h) / 2)) : -1 });
+      setSize({ w, h, top: portraitTouch ? Math.max(8, Math.floor((H - 240 - h) / 2)) : -1, wide });
     };
     layoutRef.current = layout;
     layout();
@@ -208,7 +212,7 @@ export default function GameView({ app, cfg, onExit }: { app: AppCtx; cfg: GameC
       </div>
 
       {/* Boutons haut-droite */}
-      <div className="absolute right-2 top-2 z-20 flex gap-2">
+      <div className={size.wide ? "absolute left-1/2 top-1 z-20 flex -translate-x-1/2 gap-2 opacity-70 hover:opacity-100" : "absolute right-2 top-2 z-20 flex gap-2"}>
         <button
           className="btn btn-ghost btn-sm"
           aria-label="Son"

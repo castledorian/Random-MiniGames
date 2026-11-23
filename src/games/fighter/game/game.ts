@@ -5,14 +5,14 @@ import { Fighter } from "./fighter";
 import type { ActiveAttack } from "./fighter";
 import { AI } from "./ai";
 import { buildBackground, renderGame } from "./render";
-import { W, H, STEP, STAGES, BLAST, HEROES, HERO_LIST, type HeroDef, type HeroId, type ModeId, type StageDef, type Rect } from "./constants";
+import { W, H, STEP, STAGES, BLAST, HEROES, HERO_LIST, type HeroDef, type HeroId, type ModeId, type StageDef, type Rect, type VersusConfig } from "./constants";
 
 export type Status = "playing" | "paused" | "over";
 
 export interface Projectile {
   id: number;
   owner: Fighter;
-  team: 0 | 1;
+  team: number;
   x: number;
   y: number;
   vx: number;
@@ -46,14 +46,31 @@ export interface Banner {
 }
 
 export interface GameConfig {
-  mode: ModeId;
+  mode: ModeId | "versus";
   hero: HeroId;
   touch: boolean;
   best: number;
+  /** Présent en mode versus (2 à 4 joueurs). */
+  versus?: VersusConfig;
+}
+
+export interface VersusStanding {
+  slot: number;
+  name: string;
+  hero: HeroId;
+  kind: "human" | "bot";
+  kos: number;
+  falls: number;
+  stocks: number;
+  /** Moment de l'élimination (pour le classement), Infinity si encore en vie. */
+  outAt: number;
 }
 
 export interface GameSummary {
-  mode: ModeId;
+  mode: ModeId | "versus";
+  /** Versus : vainqueur (null = égalité) et classement. */
+  winner?: VersusStanding | null;
+  standings?: VersusStanding[];
   hero: HeroId;
   score: number;
   kos: number;
@@ -86,6 +103,8 @@ interface HitData {
   hitstop: number;
   shake: number;
   dirX: 1 | -1;
+  /** Attaque lourde : traverse le bouclier et réduit l'effet de l'armure. */
+  pierce?: boolean;
 }
 
 const ARCADE = [
@@ -120,6 +139,9 @@ export class Game {
   stage: StageDef = STAGES[0];
   stageIdx = 0;
   fighters: Fighter[] = [];
+  /** Versus : tous les combattants, y compris éliminés (pour le HUD). */
+  roster: Fighter[] = [];
+  private outAt = new Map<number, number>();
   player!: Fighter;
   projectiles: Projectile[] = [];
   items: Item[] = [];
@@ -257,6 +279,10 @@ export class Game {
 
   // ---------------------------------------------------------------- reset
 
+  get versus(): boolean {
+    return this.cfg.mode === "versus" && !!this.cfg.versus;
+  }
+
   private reset() {
     this.fx.clear();
     this.projectiles = [];
@@ -295,6 +321,11 @@ export class Game {
     this.lastSecond = 99;
     this.stageIdx = 0;
     this.stage = STAGES[0];
+    this.outAt.clear();
+    if (this.versus) {
+      this.resetVersus();
+      return;
+    }
     if (this.cw > 1) this.bg = buildBackground(this);
 
     this.player = new Fighter(HEROES[this.cfg.hero], {
@@ -324,6 +355,74 @@ export class Game {
         audio.play("start");
         break;
     }
+  }
+
+  /** Mise en place d'un match versus : arène, combattants, points d'apparition. */
+  private resetVersus() {
+    const vs = this.cfg.versus!;
+    const idx = vs.stage >= 0 && vs.stage < STAGES.length ? vs.stage : Math.floor(Math.random() * STAGES.length);
+    this.stageIdx = idx;
+    this.stage = STAGES[idx];
+    if (this.cw > 1) this.bg = buildBackground(this);
+    this.fighters = vs.players.map((pc) => {
+      const f = new Fighter(HEROES[pc.hero], {
+        team: pc.slot,
+        stocks: vs.stocks,
+        isPlayer: pc.kind === "human",
+        ai: pc.kind === "bot" ? new AI(pc.level ?? 0.55) : null,
+        name: pc.name,
+        level: pc.level ?? 0,
+      });
+      f.slot = pc.slot;
+      f.device = pc.device;
+      return f;
+    });
+    this.roster = this.fighters.slice();
+    this.player = this.fighters.find((f) => f.isPlayer) ?? this.fighters[0];
+    const pts = this.versusSpawns(this.fighters.length);
+    this.fighters.forEach((f, i) => {
+      f.spawnIn(pts[i].x, pts[i].y - f.h / 2, 1.0);
+      f.facing = pts[i].x < W / 2 ? 1 : -1;
+    });
+    this.status = "playing";
+    input.reset();
+    this.modeLabel = "VERSUS";
+    this.modeSub = `${this.stage.name} · ${vs.stocks} vie${vs.stocks > 1 ? "s" : ""}`;
+    this.say("PRÊTS ?", this.stage.name, "#22e6ff", 1.0);
+    this.say("COMBATTEZ !", "Le dernier debout gagne", "#ffd23f", 0.9);
+    this.hintT = this.hintDur = 9;
+    audio.play("start");
+  }
+
+  /** Points d'apparition répartis sur les sols de l'arène. */
+  private versusSpawns(n: number) {
+    const solids = this.stage.platforms.filter((p) => p.solid);
+    const out: { x: number; y: number }[] = [];
+    const fr = n <= 2 ? [0.22, 0.78] : n === 3 ? [0.15, 0.5, 0.85] : [0.12, 0.88, 0.38, 0.62];
+    for (let i = 0; i < n; i++) {
+      // abscisse « globale » répartie entre le bord gauche du premier sol et le bord droit du dernier
+      const a = solids[0];
+      const b = solids[solids.length - 1];
+      const gx = a.x + (b.x + b.w - a.x) * fr[i];
+      const p = solids.find((q) => gx >= q.x + 30 && gx <= q.x + q.w - 30) ?? solids.reduce((best, q) => (Math.abs(q.x + q.w / 2 - gx) < Math.abs(best.x + best.w / 2 - gx) ? q : best));
+      out.push({ x: Math.max(p.x + 40, Math.min(p.x + p.w - 40, gx)), y: p.y });
+    }
+    return out;
+  }
+
+  /** Cible de l'IA : l'adversaire vivant le plus proche (d'une autre équipe). */
+  targetFor(f: Fighter): Fighter | null {
+    let best: Fighter | null = null;
+    let bd = Infinity;
+    for (const o of this.fighters) {
+      if (o === f || o.team === f.team || o.state !== "alive") continue;
+      const d = Math.abs(o.x - f.x) + Math.abs(o.y - f.y) * 0.7;
+      if (d < bd) {
+        bd = d;
+        best = o;
+      }
+    }
+    return best;
   }
 
   private playerSpawn() {
@@ -440,6 +539,14 @@ export class Game {
   }
 
   private updateMode(dt: number) {
+    if (this.versus) {
+      this.itemT -= dt;
+      if (this.itemT <= 0) {
+        this.itemT = 15 + Math.random() * 8;
+        if (this.items.length < 1 && this.fighters.some((f) => f.state === "alive" && f.percent >= 40)) this.spawnItem();
+      }
+      return;
+    }
     // spawn queue
     for (const s of this.spawnQueue) s.t -= dt;
     while (this.spawnQueue.length && this.spawnQueue[0].t <= 0) this.spawnEnemy(this.spawnQueue.shift()!);
@@ -529,8 +636,47 @@ export class Game {
     this.phaseT = 2.5;
   }
 
+  private standings(): VersusStanding[] {
+    return this.roster
+      .map((f) => ({
+        slot: f.slot,
+        name: f.name,
+        hero: f.hero.id,
+        kind: (f.isPlayer ? "human" : "bot") as "human" | "bot",
+        kos: f.kos,
+        falls: f.falls,
+        stocks: Math.max(0, f.stocks),
+        outAt: this.outAt.get(f.id) ?? Infinity,
+      }))
+      .sort((a, b) => b.outAt - a.outAt || b.stocks - a.stocks || b.kos - a.kos);
+  }
+
   private finish(victory: boolean, reason: string) {
     if (this.status === "over") return;
+    if (this.versus) {
+      const st = this.standings();
+      const alive = st.filter((x) => x.outAt === Infinity);
+      const winner = alive.length === 1 ? alive[0] : null;
+      this.status = "over";
+      audio.stopMusic();
+      audio.play("win");
+      input.reset();
+      this.cb.onStatus("over");
+      this.cb.onOver({
+        mode: "versus",
+        hero: winner?.hero ?? this.cfg.hero,
+        score: 0,
+        kos: winner?.kos ?? 0,
+        maxCombo: 0,
+        time: this.elapsed,
+        progress: "",
+        victory: !!winner,
+        reason: winner ? `${winner.name} GAGNE !` : "ÉGALITÉ",
+        winner,
+        standings: st,
+      });
+      return;
+    }
     if (victory) this.addScore(3000 + Math.max(0, this.player.stocks) * 1000, W / 2, 380);
     this.status = "over";
     audio.stopMusic();
@@ -590,7 +736,7 @@ export class Game {
       const pc = input.ctrl();
       for (const f of this.fighters) {
         if (f.state !== "alive") continue;
-        const c = f.isPlayer ? pc : f.ai ? f.ai.think(f, this, dt) : emptyCtrl();
+        const c = f.ai ? f.ai.think(f, this, dt) : this.versus ? (f.device ? input.ctrlOf(f.device) : emptyCtrl()) : f.isPlayer ? pc : emptyCtrl();
         f.update(dt, c, this);
         if (f.percent > 110 && Math.random() < dt * 9) {
           this.fx.emit("dot", f.x + (Math.random() - 0.5) * f.w, f.y + (Math.random() - 0.5) * f.h, (Math.random() - 0.5) * 40, -60, 0.5, 3, "#ff5a36", { add: true });
@@ -665,7 +811,7 @@ export class Game {
     // danger vignette
     const v = this.visible();
     const p = this.player;
-    const out = p.state === "alive" && (p.x < v.x0 || p.x > v.x1 || p.y < v.y0 || p.y > v.y1);
+    const out = !this.versus && p.state === "alive" && (p.x < v.x0 || p.x > v.x1 || p.y < v.y0 || p.y > v.y1);
     this.dangerA += ((out ? 1 : 0) - this.dangerA) * Math.min(1, 10 * dt);
   }
 
@@ -677,11 +823,12 @@ export class Game {
         if (f.removed) continue;
         f.stateT -= dt;
         if (f.stateT <= 0) {
-          if (f.isPlayer) {
+          if (f.isPlayer || this.versus) {
             if (f.stocks > 0) {
-              f.spawnIn(W / 2, 70, 2.3);
-              this.fx.ring(W / 2, 70, 10, 300, 0.5, f.hero.accent);
-              this.fx.sparks(W / 2, 70, 20, 0, Math.PI, 100, 500, f.hero.accent, 0.5);
+              const rx = this.versus ? W / 2 + ((f.slot % 4) - 1.5) * 90 : W / 2;
+              f.spawnIn(rx, 70, 2.3);
+              this.fx.ring(rx, 70, 10, 300, 0.5, f.hero.accent);
+              this.fx.sparks(rx, 70, 20, 0, Math.PI, 100, 500, f.hero.accent, 0.5);
               audio.play("spawn");
             }
           } else {
@@ -731,17 +878,40 @@ export class Game {
     this.fx.shards(kx, ky, 14, col, 700);
     this.addShake(30);
     this.zoomPunch = 0.07;
-    this.flashA = f.isPlayer ? 0.5 : 0.65;
-    this.flashColor = f.isPlayer ? "#ff3e5e" : "#ffffff";
+    this.flashA = f.isPlayer && !this.versus ? 0.5 : 0.45;
+    this.flashColor = f.isPlayer && !this.versus ? "#ff3e5e" : "#ffffff";
     this.slow(f.isPlayer && f.stocks <= 1 && this.cfg.mode !== "timeattack" ? 1.0 : 0.5, 0.28);
     audio.play("ko");
     this.buzz(f.isPlayer ? [40, 40, 90] : 35);
 
     f.state = "dead";
     f.attack = null;
+    f.charge = -1;
+    f.pendAtk = 0;
     f.shieldT = 0;
     f.dashT = 0;
     f.stocks--;
+
+    if (this.versus) {
+      const killer = this.t - f.lastHitT < 6 && f.lastHitBy && f.lastHitBy !== f ? f.lastHitBy : null;
+      if (killer) killer.kos++;
+      else f.falls++;
+      const label = killer ? `${killer.name} ÉJECTE ${f.name} !` : `${f.name} TOMBE !`;
+      this.fx.text(kx, ky + (ky < H / 2 ? 140 : -62), label, killer ? killer.hero.color : "#ffffff", 30, 1.4);
+      if (f.stocks <= 0) {
+        f.removed = true;
+        this.outAt.set(f.id, this.t);
+        this.fx.text(kx, ky + (ky < H / 2 ? 185 : -105), "ÉLIMINÉ", "#ff3e5e", 34, 1.4);
+        const left = this.fighters.filter((o) => !o.removed);
+        if (left.length <= 1 && this.overT < 0) {
+          this.overT = 1.6;
+          if (left[0]) this.say(`${left[0].name} GAGNE !`, left[0].hero.name, left[0].hero.color, 1.6);
+        }
+      } else {
+        f.stateT = 1.3;
+      }
+      return;
+    }
 
     if (f.team === 1) {
       this.kos++;
@@ -828,7 +998,25 @@ export class Game {
       a.hit.add(v.id);
       const ix = (Math.max(box.x, vr.x) + Math.min(box.x + box.w, vr.x + vr.w)) / 2;
       const iy = (Math.max(box.y, vr.y) + Math.min(box.y + box.h, vr.y + vr.h)) / 2;
-      this.applyHit(att, v, { dmg: d.dmg, kb: d.kb, growth: d.growth, angle: d.angle, hitstop: d.hitstop, shake: d.shake, dirX: att.facing }, ix, iy, true);
+      const pw = a.power ?? 0;
+      const heavy = !!d.heavy;
+      this.applyHit(
+        att,
+        v,
+        {
+          dmg: heavy ? d.dmg * (1 + 0.6 * pw) : d.dmg,
+          kb: d.kb,
+          growth: heavy ? d.growth * (1 + 0.5 * pw) : d.growth,
+          angle: d.angle,
+          hitstop: heavy ? d.hitstop * (1 + 0.5 * pw) : d.hitstop,
+          shake: heavy ? d.shake * (1 + pw) : d.shake,
+          dirX: att.facing,
+          pierce: heavy,
+        },
+        ix,
+        iy,
+        true,
+      );
     }
   }
 
@@ -874,6 +1062,18 @@ export class Game {
   }
 
   private applyHit(att: Fighter, v: Fighter, h: HitData, px: number, py: number, melee: boolean) {
+    // --- heavy attack breaks the shield (it still absorbs part of the blow)
+    let absorbed = 1;
+    if (v.shieldT > 0 && h.pierce) {
+      v.shieldT = 0;
+      v.cd = Math.max(v.cd, 1.2);
+      absorbed = 0.8;
+      this.fx.ring(px, py, 20, 520, 0.45, "#ffffff");
+      this.fx.shards(px, py, 14, v.hero.accent, 620);
+      this.fx.text(v.x, v.y - v.h, "BOUCLIER BRISÉ !", "#ffffff", 26, 1.1);
+      audio.play("heavy", 1.1);
+      this.addShake(12);
+    }
     // --- shield block
     if (v.shieldT > 0) {
       v.shieldFlash = 0.18;
@@ -895,8 +1095,10 @@ export class Game {
     v.percent += dmg;
     v.pop = 1;
 
-    const raw = h.kb + h.growth * v.percent * 0.01;
-    const kb = (raw / (v.hero.weight * v.weightMult)) * v.armor();
+    const raw = (h.kb + h.growth * v.percent * 0.01) * absorbed;
+    // L'attaque lourde n'est réduite qu'à moitié par l'armure de Basalt.
+    const armor = h.pierce ? 1 - (1 - v.armor()) * 0.5 : v.armor();
+    const kb = (raw / (v.hero.weight * v.weightMult)) * armor;
     let ang = h.angle;
     if (v.onGround && ang < 0) ang = 62;
     const rad = (ang * Math.PI) / 180;
@@ -913,6 +1115,8 @@ export class Game {
     if (melee) att.freeze = hs;
     v.flash = 0.13;
     v.attack = null;
+    v.charge = -1;
+    v.pendAtk = 0;
     v.dashT = 0;
     v.shieldT = 0;
     v.fastFall = false;
@@ -941,7 +1145,7 @@ export class Game {
     audio.play(strong ? "heavy" : "hit", Math.min(1.2, kb / 900));
 
     // --- score & combo
-    if (att.isPlayer && v.team === 1) {
+    if (!this.versus && att.isPlayer && v.team === 1) {
       this.combo++;
       this.comboT = 1.5;
       this.comboPop = 1;
@@ -953,7 +1157,7 @@ export class Game {
       if (this.combo >= 3 && this.combo % 3 === 0) audio.play("combo", this.comboMult / 3);
       this.buzz(strong ? 30 : 10);
     }
-    if (v.isPlayer) {
+    if (!this.versus && v.isPlayer) {
       this.combo = 0;
       this.comboMult = 1;
       this.comboT = 0;
@@ -1066,8 +1270,8 @@ export class Game {
   private updateItems(dt: number) {
     for (const it of this.items) {
       it.life -= dt;
-      const p = this.player;
-      if (p.state === "alive" && Math.hypot(p.x - it.x, p.y - it.y) < 40) {
+      const p = this.versus ? this.fighters.find((f) => f.state === "alive" && Math.hypot(f.x - it.x, f.y - it.y) < 40) : this.player;
+      if (p && it.life > 0 && p.state === "alive" && Math.hypot(p.x - it.x, p.y - it.y) < 40) {
         it.life = 0;
         p.percent = Math.max(0, p.percent - 25);
         this.fx.ring(it.x, it.y, 10, 300, 0.45, "#78ffaa");

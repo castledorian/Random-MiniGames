@@ -117,7 +117,7 @@ export default function Hub() {
           </p>
         </header>
 
-        <ul className="mt-8 grid w-full list-none grid-cols-1 gap-5 p-0 sm:mt-10 md:grid-cols-3" role="listbox" aria-label="Jeux">
+        <ul className="mt-8 grid w-full list-none grid-cols-1 gap-5 p-0 sm:mt-10 mx-auto max-w-4xl md:grid-cols-2" role="listbox" aria-label="Jeux">
           {GAMES.map((g, i) => {
             const on = i === sel;
             return (

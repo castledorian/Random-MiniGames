@@ -133,7 +133,13 @@ export interface AttackDef {
   spawn?: "bolt" | "fan";
   arc: ArcKind;
   variant?: number;
+  /** Attaque lourde : traverse les boucliers (Rempart de Basalt). */
+  heavy?: boolean;
 }
+
+/** Attaque lourde (maintenir ATTAQUE au sol) : durée de maintien avant la charge, charge max. */
+export const HEAVY_HOLD = 0.17;
+export const HEAVY_MAX = 1.0;
 
 export const ATK: Record<string, AttackDef> = {
   jab1: {
@@ -170,6 +176,13 @@ export const ATK: Record<string, AttackDef> = {
     id: "nair", startup: 0.045, active: 0.13, recovery: 0.16,
     box: { x: -36, y: -4, w: 96, h: 66 },
     dmg: 6, kb: 350, growth: 560, angle: 42, hitstop: 0.07, shake: 5, lunge: 0, arc: "spin",
+  },
+  // Attaque lourde chargée, façon « smash » : dégâts et éjection selon la charge,
+  // éjection qui grimpe fort avec le % de la cible. Valeurs multipliées par la charge dans fighter.ts.
+  smash: {
+    id: "smash", startup: 0.05, active: 0.1, recovery: 0.36,
+    box: { x: 4, y: -8, w: 98, h: 64 },
+    dmg: 10, kb: 280, growth: 1000, angle: 38, hitstop: 0.16, shake: 14, lunge: 260, arc: "fwd", variant: 2, heavy: true,
   },
   bolt: {
     id: "bolt", startup: 0.09, active: 0.03, recovery: 0.16,
@@ -247,6 +260,29 @@ export const HEROES: Record<HeroId, HeroDef> = {
 };
 
 export const HERO_LIST: HeroDef[] = [HEROES.volt, HEROES.basalt, HEROES.kira, HEROES.ember];
+
+// ---------------------------------------------------------------- Versus
+
+/** Couleurs des joueurs J1…J4 (marqueurs, cartes). */
+export const SLOT_COLORS = ["#22e6ff", "#ff3e5e", "#38e08a", "#ffd23f"];
+
+export interface VersusPlayer {
+  slot: number;
+  hero: HeroId;
+  kind: "human" | "bot";
+  /** Périphérique : "kbA", "kbB", "gp0".., "ph:<pid>" ; null pour un bot. */
+  device: string | null;
+  name: string;
+  /** Niveau des bots, 0..1. */
+  level?: number;
+}
+
+export interface VersusConfig {
+  players: VersusPlayer[];
+  stocks: number;
+  /** Index d'arène dans STAGES, ou -1 = aléatoire. */
+  stage: number;
+}
 
 export const MODES: { id: ModeId; name: string; tag: string; desc: string; icon: string }[] = [
   { id: "arcade", name: "ARCADE", tag: "6 duels", desc: "Enchaîne 6 combats contre des adversaires de plus en plus coriaces. Boss final.", icon: "★" },

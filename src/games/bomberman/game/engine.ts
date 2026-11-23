@@ -15,9 +15,9 @@ import {
   T_FLOOR,
   T_WALL,
   TILE,
-  VIEW_H,
-  VIEW_W,
+  layoutFor,
   type Bomb,
+  type Layout,
   type Cmd,
   type Dir,
   type Flame,
@@ -31,6 +31,7 @@ import {
   type Warning,
 } from "./types";
 import { makeAI, runAI } from "./ai";
+import { LEVELS, levelById, type Level } from "./levels";
 import { Renderer } from "./render";
 
 export const SPAWNS: [number, number][] = [
@@ -76,6 +77,11 @@ export class Game {
   renderer: Renderer | null = null;
 
   grid = new Uint8Array(COLS * ROWS);
+  /** Niveau courant et tunnels (1 = ligne / colonne reliée d'un bord à l'autre). */
+  level: Level = LEVELS[0];
+  portalRow = new Uint8Array(ROWS);
+  portalCol = new Uint8Array(COLS);
+  layout: Layout = layoutFor(false);
   hidden = new Uint8Array(COLS * ROWS);
   pop = new Float32Array(COLS * ROWS);
   bombs: Bomb[] = [];
@@ -123,8 +129,8 @@ export class Game {
   private last = 0;
   private frameAvg = 16;
   private frameCount = 0;
-  private cssW = VIEW_W;
-  private cssH = VIEW_H;
+  private cssW = 0;
+  private cssH = 0;
   private dpr = 1;
   private nextId = 1;
   private summaryCache: GameSummary | null = null;
@@ -263,6 +269,7 @@ export class Game {
       boostSpeed: 0,
       blinkT: Math.random() * 5,
       placed: 0,
+      corner: 0,
     };
     this.applyBase(p);
     return p;
@@ -347,6 +354,7 @@ export class Game {
       const [sx, sy] = SPAWNS[order[i % 4]];
       p.spawnX = sx;
       p.spawnY = sy;
+      p.corner = order[i % 4];
       p.x = sx + 0.5;
       p.y = sy + 0.5;
       p.alive = true;
@@ -400,9 +408,58 @@ export class Game {
     this.summaryCache = null;
   }
 
+  /** Choisit le niveau de la manche : fixé, aléatoire, ou en rotation en solo. */
+  private pickLevel(): Level {
+    const want = this.cfg.level;
+    if (this.cfg.mode === "solo" && (!want || want === "random")) {
+      // Le solo fait découvrir les arènes au fil des étapes.
+      return LEVELS[(this.stage - 1) % LEVELS.length];
+    }
+    if (!want || want === "random") {
+      const pool = LEVELS.filter((l) => l !== this.level);
+      return pool[Math.floor(Math.random() * pool.length)] ?? LEVELS[0];
+    }
+    return levelById(want);
+  }
+
+  /**
+   * Coordonnées de case « repliées » à travers les tunnels.
+   * Retourne l'index de case, ou -1 si on sort du plateau sans tunnel.
+   */
+  wrapIdx(x: number, y: number): number {
+    if (x < 0 || x >= COLS) {
+      if (y < 0 || y >= ROWS || !this.portalRow[y]) return -1;
+      x = ((x % COLS) + COLS) % COLS;
+    }
+    if (y < 0 || y >= ROWS) {
+      if (!this.portalCol[x]) return -1;
+      y = ((y % ROWS) + ROWS) % ROWS;
+    }
+    return y * COLS + x;
+  }
+
+  /** Ramène une position de joueur dans le plateau après un passage de tunnel. */
+  private wrapPos(p: { x: number; y: number }) {
+    if (p.x < 0) p.x += COLS;
+    else if (p.x >= COLS) p.x -= COLS;
+    if (p.y < 0) p.y += ROWS;
+    else if (p.y >= ROWS) p.y -= ROWS;
+  }
+
+  /** Vrai si la case de bord (x, y) est l'entrée d'un tunnel. */
+  isPortal(x: number, y: number): boolean {
+    return ((x === 0 || x === COLS - 1) && !!this.portalRow[y]) || ((y === 0 || y === ROWS - 1) && !!this.portalCol[x]);
+  }
+
   private genLevel() {
     const g = this.grid;
     this.hidden.fill(0);
+    const lv = this.pickLevel();
+    this.level = lv;
+    this.portalRow.fill(0);
+    this.portalCol.fill(0);
+    for (const r of lv.portalRows) this.portalRow[r] = 1;
+    for (const c of lv.portalCols) this.portalCol[c] = 1;
     const solo = this.cfg.mode === "solo";
     const kinds: [PowerKind, number][] = solo
       ? [
@@ -425,9 +482,12 @@ export class Game {
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
         const i = y * COLS + x;
-        if (x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1 || (x % 2 === 0 && y % 2 === 0)) {
+        const border = x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1;
+        if (border && this.isPortal(x, y)) {
+          g[i] = T_FLOOR;
+        } else if (border || (x % 2 === 0 && y % 2 === 0) || lv.walls?.(x, y)) {
           g[i] = T_WALL;
-        } else if (Math.random() < 0.76) {
+        } else if (Math.random() < lv.density) {
           g[i] = T_BLOCK;
           if (Math.random() < 0.32) {
             let r = Math.random() * total;
@@ -461,6 +521,22 @@ export class Game {
         g[cy * COLS + cx] = T_FLOOR;
         this.hidden[cy * COLS + cx] = 0;
       }
+    }
+    // Entrées de tunnel dégagées : la case du bord et sa voisine intérieure.
+    const clearAt = (x: number, y: number) => {
+      const i = y * COLS + x;
+      if (g[i] === T_BLOCK) {
+        g[i] = T_FLOOR;
+        this.hidden[i] = 0;
+      }
+    };
+    for (const r of lv.portalRows) {
+      clearAt(1, r);
+      clearAt(COLS - 2, r);
+    }
+    for (const c of lv.portalCols) {
+      clearAt(c, 1);
+      clearAt(c, ROWS - 2);
     }
   }
 
@@ -647,8 +723,8 @@ export class Game {
   }
 
   private blockedFor(p: Player, tx: number, ty: number): boolean {
-    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return true;
-    const i = ty * COLS + tx;
+    const i = this.wrapIdx(tx, ty);
+    if (i < 0) return true;
     if (this.grid[i] !== T_FLOOR) return true;
     const b = this.bombGrid[i];
     return !!b && !b.pass.has(p);
@@ -675,6 +751,7 @@ export class Game {
       if (!this.collides(p, nx, ny)) {
         p.x = nx;
         p.y = ny;
+        this.wrapPos(p);
         moved += step;
         continue;
       }
@@ -724,30 +801,46 @@ export class Game {
   }
 
   private tryKick(p: Player, dx: number, dy: number) {
-    const tx = Math.floor(p.x) + dx;
-    const ty = Math.floor(p.y) + dy;
-    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
-    const b = this.bombGrid[ty * COLS + tx];
+    const ki = this.wrapIdx(Math.floor(p.x) + dx, Math.floor(p.y) + dy);
+    if (ki < 0) return;
+    const b = this.bombGrid[ki];
     if (!b || b.pass.has(p) || b.dx !== 0 || b.dy !== 0) return;
     this.startSlide(b, dx, dy);
   }
 
   private bombCanEnter(nx: number, ny: number): boolean {
-    if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return false;
-    const i = ny * COLS + nx;
+    const i = this.wrapIdx(nx, ny);
+    if (i < 0) return false;
     if (this.grid[i] !== T_FLOOR || this.bombGrid[i]) return false;
-    for (const pl of this.players) if (pl.alive && this.overlapsTile(pl, nx, ny)) return false;
+    const x = i % COLS;
+    const y = Math.floor(i / COLS);
+    for (const pl of this.players) if (pl.alive && this.overlapsTile(pl, x, y)) return false;
     return true;
+  }
+
+  /** Déplace une bombe glissante d'une case (en passant éventuellement par un tunnel). */
+  private moveBombTile(b: Bomb, nx: number, ny: number) {
+    const i = this.wrapIdx(nx, ny);
+    this.bombGrid[b.ty * COLS + b.tx] = null;
+    const wx = i % COLS;
+    const wy = Math.floor(i / COLS);
+    if (wx !== nx || wy !== ny) {
+      // Passage de tunnel : la bombe réapparaît au bord opposé.
+      b.fx = wx + 0.5 - b.dx;
+      b.fy = wy + 0.5 - b.dy;
+    }
+    b.tx = wx;
+    b.ty = wy;
+    this.bombGrid[i] = b;
   }
 
   private startSlide(b: Bomb, dx: number, dy: number) {
     const nx = b.tx + dx;
     const ny = b.ty + dy;
     if (!this.bombCanEnter(nx, ny)) return;
-    this.bombGrid[b.ty * COLS + b.tx] = null;
-    b.tx = nx;
-    b.ty = ny;
-    this.bombGrid[ny * COLS + nx] = b;
+    b.dx = dx;
+    b.dy = dy;
+    this.moveBombTile(b, nx, ny);
     b.dx = dx;
     b.dy = dy;
     this.audio?.kick();
@@ -813,10 +906,7 @@ export class Game {
           const nx = b.tx + b.dx;
           const ny = b.ty + b.dy;
           if (this.bombCanEnter(nx, ny)) {
-            this.bombGrid[b.ty * COLS + b.tx] = null;
-            b.tx = nx;
-            b.ty = ny;
-            this.bombGrid[ny * COLS + nx] = b;
+            this.moveBombTile(b, nx, ny);
             this.dangerDirty = true;
           } else {
             b.dx = 0;
@@ -889,11 +979,15 @@ export class Game {
       this.emit(px, py, Math.cos(a) * s, Math.sin(a) * s, 0.35 + Math.random() * 0.4, 0, Math.random() < 0.5 ? "#ffb347" : "#ff6b3c", 0, 0, 4 + Math.random() * 3, 0);
     }
     for (let d = 0; d < 4; d++) {
+      let x = cx;
+      let y = cy;
       for (let k = 1; k <= b.range; k++) {
-        const x = cx + DX[d] * k;
-        const y = cy + DY[d] * k;
-        if (x < 0 || y < 0 || x >= COLS || y >= ROWS) break;
-        const i = y * COLS + x;
+        // Les flammes traversent les tunnels et ressortent de l'autre côté.
+        const i = this.wrapIdx(x + DX[d], y + DY[d]);
+        if (i < 0) break;
+        x = i % COLS;
+        y = Math.floor(i / COLS);
+        if (x === cx && y === cy) break;
         const t = this.grid[i];
         if (t === T_WALL) break;
         if (t === T_BLOCK) {
@@ -1255,10 +1349,10 @@ export class Game {
         let y = Math.floor(p.y);
         let placed = 0;
         for (let k = 1; k <= 4; k++) {
-          x += DX[p.facing];
-          y += DY[p.facing];
-          if (x < 0 || y < 0 || x >= COLS || y >= ROWS) break;
-          const i = y * COLS + x;
+          const i = this.wrapIdx(x + DX[p.facing], y + DY[p.facing]);
+          if (i < 0) break;
+          x = i % COLS;
+          y = Math.floor(i / COLS);
           if (this.grid[i] !== T_FLOOR) break;
           if (this.bombGrid[i]) continue;
           const b = this.placeBomb(p, { free: true, fuse: 0.9 + 0.2 * k, tx: x, ty: y });
@@ -1481,11 +1575,14 @@ export class Game {
   blastTiles(tx: number, ty: number, range: number): number[] {
     const out: number[] = [ty * COLS + tx];
     for (let d = 0; d < 4; d++) {
+      let x = tx;
+      let y = ty;
       for (let k = 1; k <= range; k++) {
-        const x = tx + DX[d] * k;
-        const y = ty + DY[d] * k;
-        if (x < 0 || y < 0 || x >= COLS || y >= ROWS) break;
-        const i = y * COLS + x;
+        const i = this.wrapIdx(x + DX[d], y + DY[d]);
+        if (i < 0) break;
+        x = i % COLS;
+        y = Math.floor(i / COLS);
+        if (x === tx && y === ty) break;
         const t = this.grid[i];
         if (t === T_WALL) break;
         out.push(i);
@@ -1605,10 +1702,17 @@ export class Game {
       vib: p.vib,
       state: this.state,
       lives: p.lives,
+      score: p.score,
+      wins: p.wins,
     };
   }
 
+  /** Choisit la disposition : scores dans les 4 coins (écran large) ou bandeau en haut. */
+  setWide(wide: boolean) {
+    if (this.layout.wide !== wide) this.layout = layoutFor(wide);
+  }
+
   static viewSize() {
-    return { w: VIEW_W, h: VIEW_H, bw: BOARD_W, bh: BOARD_H };
+    return { bw: BOARD_W, bh: BOARD_H };
   }
 }

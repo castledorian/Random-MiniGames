@@ -1,6 +1,6 @@
 import type { Game, Projectile, Item } from "./game";
 import type { Fighter } from "./fighter";
-import { W, H, type Platform } from "./constants";
+import { W, H, HEAVY_MAX, SLOT_COLORS, type Platform } from "./constants";
 
 export const FONT = 'Bungee, "Arial Black", Impact, system-ui, sans-serif';
 const BODY_FONT = '"Chakra Petch", system-ui, sans-serif';
@@ -238,6 +238,49 @@ function drawSoft(ctx: CanvasRenderingContext2D, p: Platform, g: Game) {
 }
 
 // ------------------------------------------------------------------- fighters
+
+/** Couleur d'identification : couleur du joueur en versus, cyan / rouge en solo. */
+function markColor(f: Fighter) {
+  if (f.slot >= 0) return SLOT_COLORS[f.slot % 4];
+  return f.isPlayer ? "#22e6ff" : "#ff3e5e";
+}
+
+/** Aura de l'attaque lourde en cours de charge. */
+function drawCharge(ctx: CanvasRenderingContext2D, f: Fighter, time: number) {
+  if (f.charge < 0) return;
+  const k = Math.min(1, f.charge / HEAVY_MAX);
+  const full = k >= 0.98;
+  const pulse = 0.5 + 0.5 * Math.sin(time * (14 + 20 * k));
+  const r = f.h * (0.75 + 0.35 * k) + pulse * 6;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const col = full ? "#ffffff" : f.hero.accent;
+  const gr = ctx.createRadialGradient(f.x, f.y, r * 0.2, f.x, f.y, r);
+  gr.addColorStop(0, hexA(col, 0.05));
+  gr.addColorStop(0.7, hexA(col, 0.15 + 0.3 * k));
+  gr.addColorStop(1, hexA(col, 0));
+  ctx.fillStyle = gr;
+  ctx.beginPath();
+  ctx.arc(f.x, f.y, r, 0, TAU);
+  ctx.fill();
+  // jauge circulaire
+  ctx.strokeStyle = hexA(col, 0.9);
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(f.x, f.y, f.h * 0.72, -Math.PI / 2, -Math.PI / 2 + TAU * k);
+  ctx.stroke();
+  ctx.restore();
+  if (full) {
+    ctx.font = `16px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = OUT;
+    ctx.strokeText("MAX !", f.x, f.y - f.h * 0.95);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("MAX !", f.x, f.y - f.h * 0.95);
+  }
+}
 
 export function drawFighter(ctx: CanvasRenderingContext2D, f: Fighter, time: number, marker = true) {
   const hero = f.hero;
@@ -626,9 +669,21 @@ export function drawFighter(ctx: CanvasRenderingContext2D, f: Fighter, time: num
   // marker
   if (marker && f.state === "alive") {
     const my = f.y - f.h / 2 - 26 - Math.sin(time * 5) * 2 - (hero.id === "ember" || hero.id === "volt" ? 14 : 0);
-    ctx.fillStyle = f.isPlayer ? "#22e6ff" : "#ff3e5e";
+    const mc = markColor(f);
+    ctx.fillStyle = mc;
     ctx.strokeStyle = OUT;
     ctx.lineWidth = 2.5;
+    if (f.slot >= 0) {
+      // versus : étiquette J1…J4 (ou CPU) au-dessus du combattant
+      const label = f.isPlayer ? "J" + (f.slot + 1) : "CPU";
+      ctx.font = `13px ${FONT}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.lineWidth = 4;
+      ctx.strokeText(label, f.x, my - 12);
+      ctx.fillText(label, f.x, my - 12);
+      ctx.lineWidth = 2.5;
+    }
     ctx.beginPath();
     ctx.moveTo(f.x - 8, my - 8);
     ctx.lineTo(f.x + 8, my - 8);
@@ -657,7 +712,7 @@ function drawAttackFx(ctx: CanvasRenderingContext2D, f: Fighter) {
   if (prog >= 1) return;
   const e = 1 - Math.pow(1 - prog, 2);
   const s = f.scale;
-  const r = (d.id === "jab3" ? 82 : d.id === "upper" ? 66 : 60) * s * f.hero.reach;
+  const r = (d.id === "smash" ? 104 : d.id === "jab3" ? 82 : d.id === "upper" ? 66 : 60) * s * f.hero.reach;
   let cx = 0;
   let cy = -6;
   let a0 = -1.0;
@@ -706,7 +761,7 @@ function drawAttackFx(ctx: CanvasRenderingContext2D, f: Fighter) {
   for (let i = 0; i < 3; i++) {
     ctx.globalAlpha = (1 - prog * prog) * (i === 0 ? 0.35 : i === 1 ? 0.6 : 0.95);
     ctx.strokeStyle = i === 2 ? "#ffffff" : f.hero.accent;
-    ctx.lineWidth = (d.id === "jab3" ? 22 : 15) * (1 - prog * 0.6) * (i === 0 ? 1.7 : i === 1 ? 1.1 : 0.45) * s;
+    ctx.lineWidth = (d.id === "smash" ? 30 + 14 * (a.power ?? 0) : d.id === "jab3" ? 22 : 15) * (1 - prog * 0.6) * (i === 0 ? 1.7 : i === 1 ? 1.1 : 0.45) * s;
     ctx.beginPath();
     ctx.arc(cx * s, cy * s, r, tail, head, anti);
     ctx.stroke();
@@ -872,7 +927,8 @@ function panel(ctx: CanvasRenderingContext2D, f: Fighter, x: number, y: number, 
   ctx.fillRect(x, y, 10, h);
 
   const pad = x + 26;
-  text(ctx, f.isPlayer ? hero.name : f.name, pad, y + (big ? 24 : 20), big ? 17 : 13, hero.color, "left", 4);
+  const label = f.slot >= 0 ? (f.isPlayer ? f.name : hero.name) : f.isPlayer ? hero.name : f.name;
+  text(ctx, label.length > 12 ? label.slice(0, 11) + "…" : label, pad, y + (big ? 24 : 20), big ? 17 : 13, hero.color, "left", 4);
   // percent
   const sp = f.shownPct;
   const pop = 1 + f.pop * 0.28;
@@ -907,8 +963,8 @@ function panel(ctx: CanvasRenderingContext2D, f: Fighter, x: number, y: number, 
   }
 
   // special cooldown (player only)
-  if (f.isPlayer) {
-    const bw = 110;
+  if (f.isPlayer || f.slot >= 0) {
+    const bw = Math.min(110, w - 150);
     const bx = x + w - sk - 16 - bw;
     const by = y + h - 24;
     const k = 1 - f.cd / hero.special.cd;
@@ -921,12 +977,64 @@ function panel(ctx: CanvasRenderingContext2D, f: Fighter, x: number, y: number, 
       ctx.fillStyle = hexA("#ffffff", 0.35 + 0.3 * Math.sin(g.t * 9));
       ctx.fillRect(bx, by, bw, 8);
     }
-    text(ctx, ready ? `${hero.special.name.toUpperCase()} PRÊT` : hero.special.name.toUpperCase(), bx + bw, by - 5, 12, ready ? "#fff" : "rgba(255,255,255,0.6)", "right", 3, BODY_FONT);
+    text(ctx, ready && w > 230 ? `${hero.special.name.toUpperCase()} PRÊT` : hero.special.name.toUpperCase(), bx + bw, by - 5, 12, ready ? "#fff" : "rgba(255,255,255,0.6)", "right", 3, BODY_FONT);
   }
   ctx.restore();
 }
 
+/** HUD versus : une carte par joueur en bas de l'écran (%, vies, spécial). */
+function drawVersusHUD(ctx: CanvasRenderingContext2D, g: Game) {
+  const list = g.roster;
+  const n = list.length;
+  const gap = 14;
+  const w = Math.min(270, (W - 56 - gap * (n - 1)) / n);
+  const total = n * w + (n - 1) * gap;
+  const x0 = W / 2 - total / 2;
+  list.forEach((f, i) => {
+    const x = x0 + i * (w + gap);
+    const y = H - 100;
+    const out = f.removed || (f.stocks <= 0 && f.state === "dead");
+    ctx.save();
+    if (out) ctx.globalAlpha = 0.4;
+    panel(ctx, f, x, y, w, 80, true, g);
+    // pastille de joueur
+    const col = SLOT_COLORS[f.slot % 4];
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.roundRect(x + w - 70, y - 14, 52, 22, 11);
+    ctx.fill();
+    text(ctx, f.isPlayer ? "J" + (f.slot + 1) : "CPU", x + w - 44, y + 3, 13, OUT, "center", 0);
+    if (out) text(ctx, "ÉLIMINÉ", x + w / 2, y + 52, 26, "#ff3e5e", "center", 6);
+    ctx.restore();
+  });
+
+  const cx = W / 2;
+  text(ctx, g.modeLabel, cx, 46, 26, "#ffffff", "center", 6);
+  text(ctx, g.modeSub, cx, 70, 15, "#22e6ff", "center", 4, BODY_FONT);
+
+  if (g.hintT > 0 && g.status === "playing") {
+    const alpha = clamp(g.hintT / 1.2, 0, 1);
+    const msg = "Maintiens ATTAQUE pour une attaque lourde : elle éjecte selon le % et brise les boucliers !";
+    ctx.globalAlpha = alpha * 0.95;
+    ctx.font = `700 18px ${BODY_FONT}`;
+    const tw = ctx.measureText(msg).width + 44;
+    ctx.fillStyle = "rgba(10,5,30,0.7)";
+    ctx.beginPath();
+    ctx.roundRect(cx - tw / 2, H - 150, tw, 36, 18);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(34,230,255,0.6)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    text(ctx, msg, cx, H - 126, 18, "#ffffff", "center", 0, BODY_FONT);
+    ctx.globalAlpha = 1;
+  }
+}
+
 function drawHUD(ctx: CanvasRenderingContext2D, g: Game) {
+  if (g.versus) {
+    drawVersusHUD(ctx, g);
+    return;
+  }
   const p = g.player;
   // player panel + enemy panels
   const oc = g.overlayControls;
@@ -997,8 +1105,8 @@ function drawHUD(ctx: CanvasRenderingContext2D, g: Game) {
     const msg = first
       ? g.cfg.touch
         ? "PAD : bouger  ·  SAUT  ·  ATTAQUE  ·  SPÉCIAL"
-        : "← → bouger  ·  ↑ / ESPACE sauter  ·  J frapper  ·  K spécial"
-      : "Plus le % monte, plus ça vole loin : ÉJECTE-LES HORS DE L'ÉCRAN !";
+        : "← → bouger  ·  ↑ / ESPACE sauter  ·  J frapper (maintenir = lourde)  ·  K spécial"
+      : "Maintiens ATTAQUE : attaque lourde qui éjecte selon le % et brise les boucliers !";
     ctx.globalAlpha = alpha * 0.95;
     ctx.font = `700 19px ${BODY_FONT}`;
     const tw = ctx.measureText(msg).width + 44;
@@ -1027,7 +1135,7 @@ function drawIndicators(ctx: CanvasRenderingContext2D, g: Game) {
     ctx.translate(x, y);
     ctx.globalAlpha = 0.95;
     ctx.fillStyle = f.hero.color;
-    ctx.strokeStyle = f.isPlayer ? "#22e6ff" : "#ff3e5e";
+    ctx.strokeStyle = markColor(f);
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(0, 0, 22, 0, TAU);
@@ -1039,7 +1147,7 @@ function drawIndicators(ctx: CanvasRenderingContext2D, g: Game) {
     ctx.textBaseline = "middle";
     ctx.fillText(String(Math.floor(f.percent)), 0, 1);
     ctx.rotate(ang);
-    ctx.fillStyle = f.isPlayer ? "#22e6ff" : "#ff3e5e";
+    ctx.fillStyle = markColor(f);
     ctx.beginPath();
     ctx.moveTo(34, 0);
     ctx.lineTo(24, -8);
@@ -1115,7 +1223,16 @@ export function renderGame(ctx: CanvasRenderingContext2D, g: Game) {
   const order = [...g.fighters].sort((a, b) => Number(a.isPlayer) - Number(b.isPlayer));
   for (const fi of order) {
     if (fi.state !== "alive") continue;
-    drawFighter(ctx, fi, t);
+    drawCharge(ctx, fi, t);
+    if (fi.charge >= 0) {
+      // tremblement pendant la charge
+      const k = Math.min(1, fi.charge / HEAVY_MAX);
+      const j = 1.5 + 2.5 * k;
+      const ox = fi.x;
+      fi.x += (Math.random() - 0.5) * j;
+      drawFighter(ctx, fi, t);
+      fi.x = ox;
+    } else drawFighter(ctx, fi, t);
     drawAttackFx(ctx, fi);
   }
   for (const p of g.projectiles) if (p.alive) drawProjectile(ctx, p, t);

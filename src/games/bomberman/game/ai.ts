@@ -66,10 +66,18 @@ export function runAI(g: Game, p: Player, dt: number): Cmd {
   return cmd;
 }
 
+/** Écart signé le plus court (tient compte des tunnels qui relient les bords). */
+function wd(a: number, b: number, n: number): number {
+  let d = a - b;
+  if (d > n / 2) d -= n;
+  else if (d < -n / 2) d += n;
+  return d;
+}
+
 function steer(p: Player, ai: AIState, cmd: Cmd) {
   while (ai.path.length) {
     const t = ai.path[0];
-    if (Math.abs(p.x - (t.x + 0.5)) < 0.14 && Math.abs(p.y - (t.y + 0.5)) < 0.14) ai.path.shift();
+    if (Math.abs(wd(t.x + 0.5, p.x, COLS)) < 0.14 && Math.abs(wd(t.y + 0.5, p.y, ROWS)) < 0.14) ai.path.shift();
     else break;
   }
   if (!ai.path.length) return;
@@ -81,14 +89,14 @@ function steer(p: Player, ai: AIState, cmd: Cmd) {
   if (t.x !== cx && t.y === cy) {
     const ccy = cy + 0.5;
     if (Math.abs(p.y - ccy) > 0.12) cmd.dy = sign(ccy - p.y);
-    else cmd.dx = sign(tcx - p.x);
+    else cmd.dx = sign(wd(tcx, p.x, COLS));
   } else if (t.y !== cy && t.x === cx) {
     const ccx = cx + 0.5;
     if (Math.abs(p.x - ccx) > 0.12) cmd.dx = sign(ccx - p.x);
-    else cmd.dy = sign(tcy - p.y);
+    else cmd.dy = sign(wd(tcy, p.y, ROWS));
   } else {
-    const ddx = tcx - p.x;
-    const ddy = tcy - p.y;
+    const ddx = wd(tcx, p.x, COLS);
+    const ddy = wd(tcy, p.y, ROWS);
     if (Math.abs(ddx) > Math.abs(ddy)) cmd.dx = sign(ddx);
     else cmd.dy = sign(ddy);
   }
@@ -107,11 +115,13 @@ function bombValue(g: Game, p: Player, tx: number, ty: number, enemies: Set<numb
   let score = 0;
   if (enemies.has(ty * COLS + tx)) score += 6;
   for (let d = 0; d < 4; d++) {
+    let x = tx;
+    let y = ty;
     for (let k = 1; k <= p.range; k++) {
-      const x = tx + DX[d] * k;
-      const y = ty + DY[d] * k;
-      if (x < 0 || y < 0 || x >= COLS || y >= ROWS) break;
-      const i = y * COLS + x;
+      const i = g.wrapIdx(x + DX[d], y + DY[d]);
+      if (i < 0) break;
+      x = i % COLS;
+      y = Math.floor(i / COLS);
       const t = g.grid[i];
       if (t === 1) break;
       if (t === 2) {
@@ -152,8 +162,8 @@ function escapeExists(g: Game, p: Player, cx: number, cy: number, danger: Float3
     for (let k = 0; k < 4; k++) {
       const nx = x + DX[k];
       const ny = y + DY[k];
-      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
-      const ni = ny * COLS + nx;
+      const ni = g.wrapIdx(nx, ny);
+      if (ni < 0) continue;
       if (dist[ni] !== -1 || g.grid[ni] !== T_FLOOR || g.bombGrid[ni]) continue;
       const arrival = (d + 1) * stepT;
       if (arrival > FUSE - 0.55) continue;
@@ -194,8 +204,8 @@ function flee(g: Game, p: Player, ai: AIState, cx: number, cy: number, danger: F
     for (let k = 0; k < 4; k++) {
       const nx = x + DX[k];
       const ny = y + DY[k];
-      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
-      const ni = ny * COLS + nx;
+      const ni = g.wrapIdx(nx, ny);
+      if (ni < 0) continue;
       if (dist[ni] !== -1 || g.grid[ni] !== T_FLOOR || g.bombGrid[ni]) continue;
       const arrival = (d + 1) * stepT;
       const dn = danger[ni];
@@ -250,8 +260,8 @@ function seek(g: Game, p: Player, ai: AIState, cx: number, cy: number, danger: F
     for (let k = 0; k < 4; k++) {
       const nx = x + DX[k];
       const ny = y + DY[k];
-      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
-      const ni = ny * COLS + nx;
+      const ni = g.wrapIdx(nx, ny);
+      if (ni < 0) continue;
       if (dist[ni] !== -1 || g.grid[ni] !== T_FLOOR || g.bombGrid[ni]) continue;
       if (danger[ni] !== Infinity) continue;
       dist[ni] = d + 1;

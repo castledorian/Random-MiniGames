@@ -1,4 +1,5 @@
 import { emptyCtrl, type Ctrl } from "./input";
+import { HEAVY_HOLD } from "./constants";
 import type { Fighter } from "./fighter";
 import type { Game } from "./game";
 
@@ -10,6 +11,7 @@ export class AI {
   private timer: number;
   private ctrl: Ctrl = emptyCtrl();
   private jumpHold = 0;
+  private atkHold = 0;
   private retreat = 0;
   private wasStunned = false;
 
@@ -21,6 +23,7 @@ export class AI {
   think(f: Fighter, g: Game, dt: number): Ctrl {
     const c = this.decide(f, g, dt);
     c.jumpHeld = this.jumpHold > 0;
+    c.attackHeld = this.atkHold > 0;
     return c;
   }
 
@@ -29,7 +32,9 @@ export class AI {
     c.jumpPress = c.attackPress = c.specialPress = false;
     this.timer -= dt;
     this.jumpHold -= dt;
+    this.atkHold -= dt;
     this.retreat -= dt;
+    if (f.charge >= 0 || f.pendAtk > 0) return c; // charge an attaque lourde : on maintient
 
     if (f.hitstun > 0) {
       this.wasStunned = true;
@@ -55,7 +60,7 @@ export class AI {
       return c;
     }
 
-    const target = g.player.state === "alive" ? g.player : null;
+    const target = g.targetFor(f);
     const sp = f.hero.special.id;
     if (!target) {
       const dx = 640 - f.x;
@@ -151,6 +156,12 @@ export class AI {
       // in range: strike
       face(dir);
       f.facing = dir as 1 | -1;
+      // attaque lourde pour finir une cible bien entamée
+      if (f.onGround && Math.abs(dy) < 50 && target.percent > 75 - 25 * lv && Math.random() < 0.18 + 0.32 * lv) {
+        c.attackPress = true;
+        this.atkHold = HEAVY_HOLD + 0.1 + Math.random() * (0.25 + 0.45 * lv);
+        return c;
+      }
       if (Math.random() < 0.35 + 0.6 * lv) {
         c.attackPress = true;
         if (dy < -55) c.up = true;

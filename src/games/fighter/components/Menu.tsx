@@ -15,6 +15,7 @@ interface Props {
   touch: boolean;
   onToggleTouch: () => void;
   onPair: () => void;
+  onVersus: () => void;
   padCount: number;
 }
 
@@ -86,7 +87,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default function Menu({ prefs, onChange, onStart, touch, onToggleTouch, onPair, padCount }: Props) {
+export default function Menu({ prefs, onChange, onStart, onVersus, touch, onToggleTouch, onPair, padCount }: Props) {
   const [records, setRecords] = useState(false);
   const [help, setHelp] = useState(false);
   const hero = HEROES[prefs.hero];
@@ -154,6 +155,9 @@ export default function Menu({ prefs, onChange, onStart, touch, onToggleTouch, o
       } else if (e.code === "ArrowDown" || e.code === "KeyS") {
         nav("d");
         e.preventDefault();
+      } else if (e.code === "KeyV") {
+        e.preventDefault();
+        onVersus();
       } else if (e.code === "Enter" || e.code === "Space") {
         e.preventDefault();
         onStart();
@@ -333,10 +337,16 @@ export default function Menu({ prefs, onChange, onStart, touch, onToggleTouch, o
               </div>
 
               <button className="btn-primary animate-pulse-glow mt-5 w-full px-8 py-4 text-2xl sm:text-3xl" onClick={onStart}>
-                <span>Combattre ▶</span>
+                <span>Combat solo ▶</span>
+              </button>
+              <button
+                className="btn-ghost mt-3 w-full px-6 py-3 text-lg font-bold !border-[#ff3ea5] !text-[#ff7fc4] sm:text-xl"
+                onClick={onVersus}
+              >
+                ⚔ Versus entre amis · 2 à 4 joueurs
               </button>
               <p className="mt-2 text-center text-[11px] text-white/45">
-                {touch ? "Les commandes tactiles s'afficheront en jeu" : "Entrée / Espace pour lancer · ← → héros · ↑ ↓ mode · 📱 pour jouer avec un téléphone"}
+                {touch ? "Les commandes tactiles s'afficheront en jeu" : "Entrée / Espace : solo · V : versus · ← → héros · ↑ ↓ mode · 📱 téléphone en manette"}
               </p>
 
               <div className="mt-4 hidden grid-cols-3 gap-2 text-center text-[11px] text-white/60 sm:grid">

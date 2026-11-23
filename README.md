@@ -3,9 +3,12 @@
 Les jeux multijoueurs entre amis, directement dans le navigateur : un écran titre pour choisir,
 et partout le même système **clavier · manette · téléphone en manette via QR code**.
 
-- 💣 **Boom Brawlers** : bomberman 1 à 4 joueurs, héros à compétences, bots, versus local
-- ⚡ **Rift Brawl** : combat d'arène à éjection contre l'IA (arcade, survie, contre-la-montre)
-- ❓ **Quizclub** : le quiz de soirée (hébergé dans son propre dépôt, lien depuis l'accueil)
+- 💣 **Boom Brawlers** : bomberman 1 à 4 joueurs, héros à compétences, bots, versus local.
+  5 arènes (`src/games/bomberman/game/levels.ts`) dont certaines avec des tunnels « Pac-Man » que les explosions traversent ;
+  sur PC, le score de chaque joueur est affiché dans le coin où il apparaît.
+- ⚡ **Rift Brawl** : combat d'arène à éjection façon Smash. Versus 2 à 4 (joueurs + bots) ou solo contre l'IA
+  (arcade, survie, contre-la-montre). **Maintenir ATTAQUE = attaque lourde** : éjecte selon le % de la cible
+  et traverse le bouclier de Basalt.
 
 ▶️ **Jouer : https://castledorian.github.io/BomberMan-Random/**  (Boom Brawlers : `/bomberman/`, Rift Brawl : `/fighter/`)
 
@@ -18,7 +21,9 @@ et partout le même système **clavier · manette · téléphone en manette via 
 | Manette (Xbox, PS, Switch…) | Stick gauche / croix | A | B / X / Y / gâchettes | Start |
 | Téléphone | Joystick tactile | BOMBE | bouton du skill | — |
 
-Rift Brawl : flèches ou ZQSD pour bouger, ↑/Espace sauter, J frapper, K spécial. Téléphone : joystick + SAUT / ATTAQUE / spécial / PAUSE (ATTAQUE lance le combat depuis le menu).
+Rift Brawl, versus : clavier A = ZQSD/WASD, Espace ou Z saut, **F** attaque, **G** spécial ; clavier B = flèches (↑ saut),
+**Entrée** attaque, **Maj droite** spécial. Manette : stick/croix, A saut, X/B attaque, Y/RB spécial, Start pause.
+Solo : flèches ou ZQSD, Espace saut, J attaque, K spécial. Téléphone : joystick + SAUT / ATTAQUE / spécial / pause.
 
 **Téléphone en manette** : sur l'écran du jeu, bouton « 📱 Manette téléphone » → scannez le QR code
 (ou ouvrez la page `pad.html` du jeu et tapez le code de salle). Jusqu'à 8 téléphones par salle.

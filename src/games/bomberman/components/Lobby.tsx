@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HEROES, SLOT_COLORS, heroById, isUnlocked } from "@/game/heroes";
 import { deviceLabel } from "@/game/input";
+import { LEVELS } from "@/game/levels";
 import type { GameConfig } from "@/game/types";
 import { HeroCanvas, type AppCtx } from "./shared";
 
@@ -36,6 +37,28 @@ export default function Lobby({ app, onBack, onStart }: { app: AppCtx; onBack: (
   const xpRef = useRef(profile.xp);
   xpRef.current = profile.xp;
   const startRef = useRef<() => void>(() => undefined);
+  const [level, setLevel] = useState<string>(() => {
+    try {
+      return localStorage.getItem("boomb_level") || "random";
+    } catch {
+      return "random";
+    }
+  });
+  const levelRef = useRef(level);
+  levelRef.current = level;
+  const LEVEL_IDS = ["random", ...LEVELS.map((l) => l.id)];
+  const cycleLevel = (d: number) => {
+    const i = LEVEL_IDS.indexOf(level);
+    const next = LEVEL_IDS[(i + d + LEVEL_IDS.length) % LEVEL_IDS.length];
+    setLevel(next);
+    app.audio.click();
+    try {
+      localStorage.setItem("boomb_level", next);
+    } catch {
+      /* ignore */
+    }
+  };
+  const lv = LEVELS.find((l) => l.id === level);
 
   const commit = useCallback((next: Slot[]) => {
     slotsRef.current = next;
@@ -59,7 +82,7 @@ export default function Lobby({ app, onBack, onStart }: { app: AppCtx; onBack: (
         device: s.type === "human" ? s.device : null,
         name: s.type === "human" ? (s.device?.startsWith("ph:") ? input.phoneName(s.device) : i === 0 ? profile.name : "J" + (i + 1)) : heroById(s.hero).name,
       }));
-    onStart({ mode: "versus", players });
+    onStart({ mode: "versus", players, level: levelRef.current });
   }, [onStart, profile.name, input]);
   startRef.current = start;
 
@@ -285,7 +308,23 @@ export default function Lobby({ app, onBack, onStart }: { app: AppCtx; onBack: (
           })}
         </div>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="panel mx-auto mt-5 flex w-full max-w-xl items-center gap-3 p-3" style={{ borderColor: lv ? lv.portal + "88" : undefined }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => cycleLevel(-1)} aria-label="Arène précédente">
+            ◀
+          </button>
+          <div className="min-w-0 flex-1 text-center">
+            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--muted)]">Arène</div>
+            <div className="text-xl font-black uppercase italic" style={{ color: lv ? lv.portal : "var(--yellow)" }}>
+              {lv ? lv.name : "🎲 Aléatoire"}
+            </div>
+            <div className="text-xs font-semibold text-[var(--muted)]">{lv ? lv.desc : "Une arène différente à chaque manche."}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => cycleLevel(1)} aria-label="Arène suivante">
+            ▶
+          </button>
+        </div>
+
+        <div className="mt-5 flex flex-col items-center gap-2">
           <button className="btn btn-lg" disabled={!canStart} onClick={start}>
             ⚔ Lancer le combat
           </button>

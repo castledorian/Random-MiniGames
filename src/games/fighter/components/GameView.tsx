@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Game, type GameSummary, type Status } from "../game/game";
-import { HEROES, type HeroId, type ModeId } from "../game/constants";
+import { HEROES, type HeroId, type ModeId, type VersusConfig } from "../game/constants";
 import { input } from "../game/input";
 import { audio } from "../game/audio";
 import { link } from "../padLink";
 import { addScore, bestScore, renameScore, type Prefs } from "../storage";
 import TouchControls from "./TouchControls";
-import { GameOverOverlay, PauseOverlay } from "./Overlays";
+import { GameOverOverlay, PauseOverlay, VersusOverOverlay } from "./Overlays";
 import { Speaker } from "./Icons";
 
 interface Props {
   hero: HeroId;
   mode: ModeId;
+  versus?: VersusConfig | null;
   touch: boolean;
   prefs: Prefs;
   onPrefs: (p: Prefs) => void;
@@ -25,7 +26,7 @@ interface OverState {
   at: number;
 }
 
-export default function GameView({ hero, mode, touch, prefs, onPrefs, onExit }: Props) {
+export default function GameView({ hero, mode, versus, touch, prefs, onPrefs, onExit }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<Game | null>(null);
@@ -43,17 +44,21 @@ export default function GameView({ hero, mode, touch, prefs, onPrefs, onExit }: 
     const wrap = wrapRef.current!;
     const game = new Game(
       canvas,
-      { mode, hero, touch, best: bestScore(mode) },
+      versus ? { mode: "versus", hero, touch: false, best: 0, versus } : { mode, hero, touch, best: bestScore(mode) },
       {
         onStatus: (s) => {
           setStatus(s);
           if (s === "playing") setOver(null);
         },
         onOver: (summary) => {
+          if (summary.mode === "versus") {
+            setOver({ summary, id: "", rank: 0, at: performance.now() });
+            return;
+          }
           const res = addScore({
             name: prefsRef.current.name || "JOUEUR",
             score: summary.score,
-            mode: summary.mode,
+            mode: summary.mode as ModeId,
             hero: summary.hero,
             kos: summary.kos,
             detail: summary.progress,
@@ -63,10 +68,27 @@ export default function GameView({ hero, mode, touch, prefs, onPrefs, onExit }: 
       },
     );
     gameRef.current = game;
+    // accès console pour le débogage : window.__rift
+    (window as unknown as { __rift?: Game }).__rift = game;
     // Manette téléphone : état affiché sur le téléphone + appui pour rejouer en fin de combat
-    link.status = () => {
-      const p = game.player;
-      return { state: game.status, hero: p.hero.name, color: p.hero.color, skill: p.hero.special.name, cd: Math.max(0, p.cd), cdMax: p.hero.special.cd };
+    // Ce qu'affiche chaque téléphone : son combattant (versus) ou le héros joué (solo).
+    link.status = (pid) => {
+      const p = game.versus ? game.roster.find((f) => f.device === "ph:" + pid) : game.player;
+      if (!p) return { state: game.versus ? "spectator" : game.status };
+      return {
+        state: game.status,
+        hero: p.hero.name,
+        color: p.hero.color,
+        skill: p.hero.special.name,
+        cd: Math.max(0, p.cd),
+        cdMax: p.hero.special.cd,
+        pct: Math.floor(p.percent),
+        stocks: Math.max(0, p.stocks),
+        slot: p.slot,
+        alive: p.state === "alive",
+        out: p.removed,
+        charge: p.charge >= 0 ? Math.min(1, p.charge) : -1,
+      };
     };
     link.onButton = (i) => {
       const o = overRef.current;
@@ -89,7 +111,7 @@ export default function GameView({ hero, mode, touch, prefs, onPrefs, onExit }: 
       game.destroy();
       gameRef.current = null;
     };
-  }, [mode, hero, touch]);
+  }, [mode, hero, touch, versus]);
 
   // --------------------------------------------------------------- actions
   const restart = useCallback(() => {
@@ -219,7 +241,8 @@ export default function GameView({ hero, mode, touch, prefs, onPrefs, onExit }: 
           onToggleMute={toggleMute}
         />
       )}
-      {status === "over" && over && (
+      {status === "over" && over && over.summary.mode === "versus" && <VersusOverOverlay summary={over.summary} onRestart={restart} onMenu={onExit} />}
+      {status === "over" && over && over.summary.mode !== "versus" && (
         <GameOverOverlay
           summary={over.summary}
           entryId={over.id}
