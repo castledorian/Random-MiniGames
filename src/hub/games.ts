@@ -10,7 +10,7 @@ export interface GameEntry {
   inputs: ("keyboard" | "gamepad" | "phone" | "touch")[];
   accent: string;
   accent2: string;
-  art: "bomb" | "bolt" | "quiz" | "chef";
+  art: "bomb" | "bolt" | "quiz" | "chef" | "blob";
 }
 
 /**
@@ -50,5 +50,16 @@ export const GAMES: GameEntry[] = [
     accent: "#ffd23f",
     accent2: "#ff8a3d",
     art: "chef",
+  },
+  {
+    id: "blob",
+    name: "Blob Brawl",
+    tagline: "Puzzle de combos façon Puyo : enchaîne les chaînes et noie tes amis sous les blobs.",
+    href: "./blob/",
+    players: "1 à 4 joueurs",
+    inputs: ["keyboard", "gamepad", "phone", "touch"],
+    accent: "#ff5c7a",
+    accent2: "#ffcf33",
+    art: "blob",
   },
 ];

@@ -31,6 +31,8 @@ export default defineConfig({
         fighterPad: p("./fighter/pad.html"),
         bistro: p("./bistro/index.html"),
         bistroPad: p("./bistro/pad.html"),
+        blob: p("./blob/index.html"),
+        blobPad: p("./blob/pad.html"),
       },
     },
   },

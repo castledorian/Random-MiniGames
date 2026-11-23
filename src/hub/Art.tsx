@@ -88,6 +88,39 @@ export default function Art({ kind, a, b }: { kind: GameEntry["art"]; a: string;
       </svg>
     );
   }
+  if (kind === "blob") {
+    const blobs: [number, number, number, string][] = [
+      [62, 98, 22, a],
+      [104, 102, 24, b],
+      [146, 96, 22, "#38e08a"],
+      [84, 58, 20, "#22b8ff"],
+      [126, 60, 21, a],
+    ];
+    return (
+      <svg viewBox="0 0 200 140" className="h-full w-full" aria-hidden>
+        <defs>
+          <radialGradient id="blg" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor={b} stopOpacity="0.45" />
+            <stop offset="1" stopColor={a} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="100" cy="74" r="66" fill="url(#blg)" />
+        {blobs.map(([x, y, r, c], i) => (
+          <g key={i}>
+            <circle cx={x} cy={y} r={r} fill={c} stroke="#1b0b33" strokeWidth="3" />
+            <ellipse cx={x - r * 0.35} cy={y - r * 0.45} rx={r * 0.3} ry={r * 0.18} fill="#fff" opacity="0.5" />
+            <circle cx={x - r * 0.33} cy={y + 2} r={r * 0.22} fill="#fff" />
+            <circle cx={x + r * 0.33} cy={y + 2} r={r * 0.22} fill="#fff" />
+            <circle cx={x - r * 0.3} cy={y + 3} r={r * 0.11} fill="#1b0b33" />
+            <circle cx={x + r * 0.3} cy={y + 3} r={r * 0.11} fill="#1b0b33" />
+          </g>
+        ))}
+        <g stroke={b} strokeWidth="4" strokeLinecap="round" opacity="0.9">
+          <path d="M30 40l12 8M170 36l-12 9M100 12v14" />
+        </g>
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 200 140" className="h-full w-full" aria-hidden>
       <defs>
