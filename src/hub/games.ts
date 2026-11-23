@@ -10,7 +10,7 @@ export interface GameEntry {
   inputs: ("keyboard" | "gamepad" | "phone" | "touch")[];
   accent: string;
   accent2: string;
-  art: "bomb" | "bolt" | "quiz" | "chef" | "blob";
+  art: "bomb" | "bolt" | "quiz" | "chef" | "blob" | "blade";
 }
 
 /**
@@ -61,5 +61,16 @@ export const GAMES: GameEntry[] = [
     accent: "#ff5c7a",
     accent2: "#ffcf33",
     art: "blob",
+  },
+  {
+    id: "onehit",
+    name: "One Hit Brawl",
+    tagline: "Arène néon où un seul coup tue : nettoie les salles en équipe, vies partagées.",
+    href: "./onehit/",
+    players: "1 à 4 joueurs · co-op",
+    inputs: ["keyboard", "gamepad", "phone", "touch"],
+    accent: "#ff2d95",
+    accent2: "#19e3ff",
+    art: "blade",
   },
 ];

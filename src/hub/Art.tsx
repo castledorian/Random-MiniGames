@@ -88,6 +88,35 @@ export default function Art({ kind, a, b }: { kind: GameEntry["art"]; a: string;
       </svg>
     );
   }
+  if (kind === "blade") {
+    return (
+      <svg viewBox="0 0 200 140" className="h-full w-full" aria-hidden>
+        <defs>
+          <radialGradient id="bdg" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor={a} stopOpacity="0.4" />
+            <stop offset="1" stopColor={b} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="100" cy="72" r="64" fill="url(#bdg)" />
+        <path d="M40 112 Q100 20 168 34" fill="none" stroke={a} strokeWidth="7" strokeLinecap="round" opacity="0.9" />
+        <path d="M52 108 Q104 36 160 44" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+        <g transform="translate(92 70)">
+          <rect x="-11" y="-30" width="22" height="34" rx="6" fill="#1b0b33" stroke={b} strokeWidth="3" />
+          <rect x="-8" y="-24" width="16" height="6" rx="2" fill={b} />
+          <rect x="-9" y="4" width="7" height="12" rx="2" fill="#1b0b33" stroke={b} strokeWidth="2.5" />
+          <rect x="2" y="4" width="7" height="12" rx="2" fill="#1b0b33" stroke={b} strokeWidth="2.5" />
+        </g>
+        <g fill={a}>
+          <circle cx="146" cy="92" r="5" />
+          <circle cx="160" cy="78" r="3.5" />
+          <circle cx="138" cy="104" r="3" />
+        </g>
+        <g stroke="#ffe14a" strokeWidth="4" strokeLinecap="round">
+          <path d="M150 64l10-6M156 100l10 6M28 40l12 6" />
+        </g>
+      </svg>
+    );
+  }
   if (kind === "blob") {
     const blobs: [number, number, number, string][] = [
       [62, 98, 22, a],

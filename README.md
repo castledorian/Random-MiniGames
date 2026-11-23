@@ -14,6 +14,9 @@ et partout le même système **clavier · manette · téléphone en manette via 
 - 🟣 **Blob Brawl** : puzzle de combos façon Puyo Puyo. Solo (campagne, versus IA, score, survie) ou
   « Versus entre amis » de 2 à 4 joueurs (claviers A/B, manettes, téléphones, bots en complément).
   Les attaques visent l'adversaire en vie qui mène au score (`src/games/blob/game/game.ts`).
+- ⚔️ **One Hit Brawl** : arène néon où un seul coup tue, salles d'ennemis à nettoyer. Solo (héros à débloquer)
+  ou « En équipe » de 1 à 4 joueurs (claviers A/B, manettes, téléphones) : vies partagées, un joueur K.O.
+  revient tant qu'il reste des vies, plus d'ennemis quand l'équipe grandit (`src/games/onehit/game/game.ts`).
 
 ▶️ **Jouer : https://castledorian.github.io/BomberMan-Random/**  (Boom Brawlers : `/bomberman/`, Rift Brawl : `/fighter/`)
 
@@ -49,7 +52,7 @@ Chaque push sur `main` déclenche le déploiement GitHub Pages (`.github/workflo
 
 ```
 index.html                 écran titre « Soirée Jeux » (choix du jeu)
-bomberman/ fighter/ bistro/ blob/  une page par jeu (index.html) + sa page manette téléphone (pad.html)
+bomberman/ fighter/ bistro/ blob/ onehit/  une page par jeu (index.html) + sa page manette téléphone (pad.html)
 src/hub/                   l'écran de sélection ; la liste des jeux est dans games.ts
 src/party/                 ⭐ Party Kit : connexion écran ⇄ téléphones, commun à tous les jeux
   protocol.ts host.ts pad.ts   messages, côté écran, côté téléphone

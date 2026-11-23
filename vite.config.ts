@@ -33,6 +33,8 @@ export default defineConfig({
         bistroPad: p("./bistro/pad.html"),
         blob: p("./blob/index.html"),
         blobPad: p("./blob/pad.html"),
+        onehit: p("./onehit/index.html"),
+        onehitPad: p("./onehit/pad.html"),
       },
     },
   },
